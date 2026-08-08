@@ -1,9 +1,11 @@
-const CACHE = 'pancoon-v2';
+const CACHE = 'pancoon-v4';
 const APP_SHELL = [
   '/',
   '/index.html',
   '/styles.css',
   '/app.js',
+  '/inventory-dates.js',
+  '/dashboard-nav.js',
   '/manifest.webmanifest',
   '/assets/pancoon-mascot.svg',
   '/assets/pancoon-icon.svg'
