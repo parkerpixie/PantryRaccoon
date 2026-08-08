@@ -54,7 +54,7 @@
             <label><span>Category</span><select name="category"><option>Dinner</option><option>Lunch</option><option>Side</option><option>Dessert</option></select></label>
             <button class="primary" type="submit">Create recipe from URL</button>
           </form>
-          <p class="hint" id="importStatus">PanCoon reads structured recipe data when a site provides it.</p>
+          <p class="hint" id="importStatus">PanCoon reads structured recipe data first, then tries a readable-page fallback when a site blocks direct access.</p>
         </article>
         <div class="recipe-tools"><input id="recipeSearch" placeholder="Search recipes…"><button class="secondary" id="manualRecipeButton">Add family recipe</button></div>
         <div id="recipeShelf" class="recipe-grid"></div>
@@ -136,6 +136,7 @@
   <div class="toast" id="toast"><strong></strong><span></span></div>
   <script src="/app.js" defer></script>
   <script src="/inventory-dates.js" defer></script>
+  <script src="/dashboard-nav.js" defer></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(error => console.warn('PanCoon service worker registration failed', error)));
