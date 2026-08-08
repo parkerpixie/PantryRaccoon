@@ -13,6 +13,11 @@
   <link rel="icon" href="/assets/PanCoon%20App%20Icon.png" type="image/png">
   <link rel="apple-touch-icon" href="/assets/PanCoon%20App%20Icon.png">
   <link rel="stylesheet" href="/styles.css">
+  <style>
+    .tonight-card{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:22px;align-items:center;padding:28px 30px;background:linear-gradient(135deg,#fffaf3 0%,#f3e9e2 100%);border-color:#d9cec5}
+    .tonight-copy{min-width:0}.tonight-copy .eyebrow{color:#c87766}.tonight-copy h2{margin:4px 0 9px;font-family:Georgia,serif;font-size:clamp(30px,4vw,52px);line-height:1.02;letter-spacing:-.035em;text-wrap:balance}.tonight-cook{margin:0;color:#4f8077;font-weight:800}.tonight-actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end}.tonight-actions:empty{display:none}.tonight-actions button{min-width:112px}.tonight-card::after{content:'🦝';position:absolute;right:18px;bottom:-28px;font-size:88px;opacity:.055;pointer-events:none}
+    @media(max-width:760px){.tonight-card{grid-template-columns:1fr;padding:20px 18px;gap:15px}.tonight-copy h2{font-size:32px}.tonight-actions{justify-content:flex-start}.tonight-actions button{flex:1;min-width:0}.tonight-card::after{font-size:70px}}
+  </style>
   <script>
     // PanCoon is deliberately running without a service worker while the core
     // interaction model is stabilized. This removes only PanCoon caches and
@@ -54,16 +59,13 @@
       </header>
 
       <section class="page active" data-page="plan">
-        <div class="static-dinner-hero card">
-          <picture class="static-dinner-art" aria-hidden="true">
-            <source media="(max-width:760px)" srcset="/assets/Mobile%20Experience%20Home%20Page%20Dinner%20Portrait-Raccoon%20on%20Top.png">
-            <img src="/assets/Home%20Page%20Dinner%20Landscape-Raccon%20on%20left.png" alt="" fetchpriority="high" decoding="async">
-          </picture>
-          <div class="static-dinner-copy">
-            <p class="dinner-kicker">PanCoon has dinner covered.</p>
-            <h2>Plan the meal.<br>Keep the kitchen brain here.</h2>
-            <p>Your actual meals live just below. Recipes, groceries, and inventory stay in PanCoon so the rest of life does not have to.</p>
+        <div class="tonight-card card" aria-live="polite">
+          <div class="tonight-copy">
+            <p class="eyebrow">What's for dinner tonight?</p>
+            <h2 id="tonightMealName">Checking the plan…</h2>
+            <p id="tonightCook" class="tonight-cook"></p>
           </div>
+          <div id="tonightActions" class="tonight-actions"></div>
         </div>
         <div class="week-heading"><div><p class="eyebrow">Meal plan</p><h2 id="weekRange">This Friday → next Friday</h2></div><span class="pill">8 days, intentionally</span></div>
         <div id="mealPlan" class="meal-grid"></div>
@@ -163,6 +165,44 @@
   <dialog id="recipeViewDialog"><article class="dialog-card recipe-view" id="recipeView"></article></dialog>
   <div class="toast" id="toast"><strong></strong><span></span></div>
   <script src="/app.js" defer></script>
-  <script src="/inventory-dates.js" defer></script>
+  <script>
+    (() => {
+      const STORAGE_KEY = 'pantry-raccoon:v1';
+      const specials = {
+        'special:out': ['Go out to Eat', 'Nobody is cooking tonight.'],
+        'special:leftovers': ['Leftovers', 'Nobody needs to start from scratch tonight.'],
+        'special:freezer': ['Freezer / Heat & Eat', 'Dinner is deliberately easy tonight.'],
+        'special:undecided': ['Undecided', 'Cook not assigned yet.']
+      };
+      const dateKey = date => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+      function readState(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');}catch{return{};} }
+      function updateTonight(){
+        const name = document.getElementById('tonightMealName');
+        const cook = document.getElementById('tonightCook');
+        const actions = document.getElementById('tonightActions');
+        if(!name || !cook || !actions) return;
+        const state = readState();
+        const slot = state.plan?.[`${dateKey(new Date())}:dinner`];
+        if(!slot?.choice){ name.textContent='Nothing planned yet'; cook.textContent='Cook not assigned yet.'; actions.innerHTML=''; return; }
+        if(slot.choice.startsWith('recipe:')){
+          const id = slot.choice.slice(7);
+          const recipe = Array.isArray(state.recipes) ? state.recipes.find(item => item.id === id) : null;
+          name.textContent = recipe?.name || 'Dinner is planned';
+          cook.textContent = slot.cook && slot.cook !== 'Unassigned' ? `${slot.cook} is cooking tonight.` : 'Cook not assigned yet.';
+          actions.innerHTML = recipe ? `<button type="button" class="primary" data-view-recipe="${id}">View Recipe</button><button type="button" class="secondary" data-print-recipe="${id}">Print</button>` : '';
+          return;
+        }
+        const special = specials[slot.choice] || ['Dinner is planned',''];
+        name.textContent = special[0];
+        cook.textContent = slot.cook && !['Nobody','Unassigned'].includes(slot.cook) ? `${slot.cook} is handling dinner tonight.` : special[1];
+        actions.innerHTML='';
+      }
+      document.addEventListener('DOMContentLoaded', () => setTimeout(updateTonight, 0), {once:true});
+      document.addEventListener('change', event => {
+        if(event.target.matches('[data-plan-choice],[data-plan-cook]')) setTimeout(updateTonight,0);
+      });
+      window.addEventListener('storage', event => { if(event.key === STORAGE_KEY) updateTonight(); });
+    })();
+  </script>
 </body>
 </html>
