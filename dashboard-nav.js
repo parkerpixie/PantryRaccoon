@@ -112,13 +112,5 @@
   script.src = '/pancoon-polish.js';
   script.async = false;
   script.dataset.pancoonPolish = 'true';
-  script.addEventListener('load', () => {
-    if (document.querySelector('script[data-pancoon-hotfix]')) return;
-    const hotfix = document.createElement('script');
-    hotfix.src = '/pancoon-hotfix.js';
-    hotfix.async = false;
-    hotfix.dataset.pancoonHotfix = 'true';
-    document.head.appendChild(hotfix);
-  }, {once:true});
   document.head.appendChild(script);
 })();
