@@ -13,12 +13,27 @@
   <link rel="icon" href="/assets/PanCoon%20App%20Icon.png" type="image/png">
   <link rel="apple-touch-icon" href="/assets/PanCoon%20App%20Icon.png">
   <link rel="stylesheet" href="/styles.css">
+  <script>
+    // PanCoon is deliberately running without a service worker while the core
+    // interaction model is stabilized. This removes only PanCoon caches and
+    // registrations. Local app data in localStorage is preserved.
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations()
+        .then(registrations => Promise.all(registrations.map(registration => registration.unregister())))
+        .catch(() => {});
+    }
+    if ('caches' in window) {
+      caches.keys()
+        .then(keys => Promise.all(keys.filter(key => key.startsWith('pancoon-')).map(key => caches.delete(key))))
+        .catch(() => {});
+    }
+  </script>
 </head>
 <body>
   <div class="shell">
     <aside class="sidebar">
       <a class="brand" href="#plan" aria-label="PanCoon home">
-        <img src="/assets/PanCoon%20App%20Icon.png" alt="PanCoon raccoon mascot">
+        <img src="/assets/PanCoon%20App%20Icon.png" alt="PanCoon raccoon mascot" decoding="async">
         <span><strong>PanCoon</strong><small>Meals without the kitchen chaos</small></span>
       </a>
       <nav id="nav">
@@ -39,12 +54,22 @@
       </header>
 
       <section class="page active" data-page="plan">
-        <div class="hero card">
-          <div><p class="eyebrow">Meal headquarters</p><h2>Your week, without opening six different brains.</h2><p>Each day shows what is actually planned. Weekend cards include lunch and dinner, and recipe meals can be viewed or printed right from the plan.</p></div>
-          <img src="/assets/pancoon-mascot.svg" alt="PanCoon holding a recipe card and grocery basket">
+        <div class="static-dinner-hero card">
+          <picture class="static-dinner-art" aria-hidden="true">
+            <source media="(max-width:760px)" srcset="/assets/Mobile%20Experience%20Home%20Page%20Dinner%20Portrait-Raccoon%20on%20Top.png">
+            <img src="/assets/Home%20Page%20Dinner%20Landscape-Raccon%20on%20left.png" alt="" fetchpriority="high" decoding="async">
+          </picture>
+          <div class="static-dinner-copy">
+            <p class="dinner-kicker">PanCoon has dinner covered.</p>
+            <h2>Plan the meal.<br>Keep the kitchen brain here.</h2>
+            <p>Your actual meals live just below. Recipes, groceries, and inventory stay in PanCoon so the rest of life does not have to.</p>
+          </div>
         </div>
         <div class="week-heading"><div><p class="eyebrow">Meal plan</p><h2 id="weekRange">This Friday → next Friday</h2></div><span class="pill">8 days, intentionally</span></div>
         <div id="mealPlan" class="meal-grid"></div>
+        <div class="plan-kitchen-footer">
+          <img src="/assets/Talbot%20kitchen%20with%20Luna%20and%20Ozzy.png" alt="Illustrated Talbot kitchen with Luna and Ozzy" loading="lazy" decoding="async">
+        </div>
       </section>
 
       <section class="page" data-page="recipes">
@@ -59,6 +84,7 @@
         </article>
         <div class="recipe-tools"><input id="recipeSearch" placeholder="Search recipes…"><button class="secondary" id="manualRecipeButton">Add family recipe</button></div>
         <div id="recipeShelf" class="recipe-grid"></div>
+        <img class="page-art recipe-mixer-art" src="/assets/Pink%20Kitchaid%20mixer%20with%20cutting%20board%20and%20utensials.png" alt="Watercolor pink stand mixer with kitchen utensils" loading="lazy" decoding="async">
       </section>
 
       <section class="page" data-page="pantry">
@@ -74,6 +100,7 @@
           <p class="hint">Plenty, Half Full, Low, or Out. Use only as much detail as Future You will actually appreciate.</p>
         </article>
         <div id="pantryList"></div>
+        <img class="page-art pantry-mushroom-art" src="/assets/Mushroom%20Detail.png" alt="Botanical mushroom illustration" loading="lazy" decoding="async">
       </section>
 
       <section class="page" data-page="fridge">
@@ -137,11 +164,5 @@
   <div class="toast" id="toast"><strong></strong><span></span></div>
   <script src="/app.js" defer></script>
   <script src="/inventory-dates.js" defer></script>
-  <script src="/dashboard-nav.js" defer></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(error => console.warn('PanCoon service worker registration failed', error)));
-    }
-  </script>
 </body>
 </html>
