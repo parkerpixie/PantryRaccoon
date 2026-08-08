@@ -1,0 +1,1 @@
+Fridge inventory date = expiration date. Freezer inventory date = date added.
