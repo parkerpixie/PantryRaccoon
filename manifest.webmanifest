@@ -9,10 +9,10 @@
   "theme_color": "#2c2930",
   "icons": [
     {
-      "src": "/assets/pancoon-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/assets/PanCoon%20App%20Icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }

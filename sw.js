@@ -1,4 +1,4 @@
-const CACHE = 'pancoon-v4';
+const CACHE = 'pancoon-v5';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -8,7 +8,7 @@ const APP_SHELL = [
   '/dashboard-nav.js',
   '/manifest.webmanifest',
   '/assets/pancoon-mascot.svg',
-  '/assets/pancoon-icon.svg'
+  '/assets/PanCoon%20App%20Icon.png'
 ];
 
 self.addEventListener('install', event => {
