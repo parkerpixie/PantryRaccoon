@@ -14,9 +14,14 @@
   <link rel="apple-touch-icon" href="/assets/PanCoon%20App%20Icon.png">
   <link rel="stylesheet" href="/styles.css">
   <style>
-    .tonight-card{position:relative;overflow:hidden;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:22px;align-items:center;padding:28px 30px;background:linear-gradient(135deg,#fffaf3 0%,#f3e9e2 100%);border-color:#d9cec5}
-    .tonight-copy{min-width:0}.tonight-copy .eyebrow{color:#c87766}.tonight-copy h2{margin:4px 0 9px;font-family:Georgia,serif;font-size:clamp(30px,4vw,52px);line-height:1.02;letter-spacing:-.035em;text-wrap:balance}.tonight-cook{margin:0;color:#4f8077;font-weight:800}.tonight-actions{display:flex;gap:9px;flex-wrap:wrap;justify-content:flex-end}.tonight-actions:empty{display:none}.tonight-actions button{min-width:112px}.tonight-card::after{content:'🦝';position:absolute;right:18px;bottom:-28px;font-size:88px;opacity:.055;pointer-events:none}
-    @media(max-width:760px){.tonight-card{grid-template-columns:1fr;padding:20px 18px;gap:15px}.tonight-copy h2{font-size:32px}.tonight-actions{justify-content:flex-start}.tonight-actions button{flex:1;min-width:0}.tonight-card::after{font-size:70px}}
+    .tonight-card{position:relative;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(210px,.72fr);padding:0;overflow:hidden;min-height:270px;background:#5b3b58;border:1px solid #4a3048;border-radius:28px;box-shadow:0 18px 50px rgba(54,42,49,.12)}
+    .tonight-details{position:relative;z-index:2;align-self:stretch;display:flex;flex-direction:column;justify-content:center;margin:11px 0 11px 11px;padding:27px 34px 27px 38px;background:#fffaf3;border:1px solid #eadbd0;border-radius:25px 8px 8px 25px;box-shadow:6px 0 22px rgba(54,42,49,.08)}
+    .tonight-details::after{content:"";position:absolute;z-index:3;top:10px;right:-16px;bottom:10px;width:18px;background:radial-gradient(circle at 0 13px,#fffaf3 0 12px,#eadbd0 12.2px 13px,transparent 13.4px) 0 0/18px 30px repeat-y;pointer-events:none}
+    .tonight-details .eyebrow{color:#c87766;font-size:12px;letter-spacing:.16em;margin-bottom:8px}.tonight-details h2{margin:0;font-family:Georgia,serif;font-size:clamp(29px,3.7vw,50px);line-height:1.01;letter-spacing:-.035em;text-wrap:balance}.tonight-cook{margin:15px 0 0;color:#4f8077;font-size:17px;font-weight:850}.tonight-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.tonight-actions:empty{display:none}.tonight-actions button{min-width:125px}
+    .tonight-art{position:relative;min-width:0;overflow:hidden;background:#efe2d0}.tonight-art img{display:block;width:100%;height:100%;min-height:270px;object-fit:cover;object-position:center 42%}
+    .inventory-note-input{min-width:150px}.inventory-note-line{margin-top:7px!important;color:#4f8077!important;font-weight:700;line-height:1.35}.stable-fruit-group{scroll-margin-top:180px}
+    @media(max-width:900px){.tonight-card{grid-template-columns:minmax(0,1.5fr) minmax(175px,.65fr)}.tonight-details{padding:24px 28px}.tonight-details h2{font-size:clamp(28px,4.7vw,42px)}.tonight-art img{min-height:250px}}
+    @media(max-width:760px){.tonight-card{grid-template-columns:minmax(0,1.45fr) 132px;min-height:225px;border-radius:23px}.tonight-details{margin:7px 0 7px 7px;padding:19px 18px 18px 20px;border-radius:19px 6px 6px 19px}.tonight-details::after{right:-13px;width:15px;background-size:15px 26px;background-image:radial-gradient(circle at 0 11px,#fffaf3 0 10px,#eadbd0 10.2px 11px,transparent 11.4px)}.tonight-details .eyebrow{font-size:9px;margin-bottom:6px}.tonight-details h2{font-size:clamp(23px,7.2vw,31px);line-height:1.02}.tonight-cook{font-size:13px;margin-top:10px}.tonight-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:13px}.tonight-actions button{min-width:0;padding:9px 7px;font-size:11px}.tonight-art img{min-height:225px;object-position:52% 42%}.inventory-note-input{grid-column:1/-1}}
   </style>
   <script>
     // PanCoon is deliberately running without a service worker while the core
@@ -59,13 +64,16 @@
       </header>
 
       <section class="page active" data-page="plan">
-        <div class="tonight-card card" aria-live="polite">
-          <div class="tonight-copy">
+        <div class="tonight-card" aria-live="polite">
+          <div class="tonight-details">
             <p class="eyebrow">What's for dinner tonight?</p>
             <h2 id="tonightMealName">Checking the plan…</h2>
             <p id="tonightCook" class="tonight-cook"></p>
+            <div id="tonightActions" class="tonight-actions"></div>
           </div>
-          <div id="tonightActions" class="tonight-actions"></div>
+          <div class="tonight-art" aria-hidden="true">
+            <img src="/assets/HERO%20Raccoon%20in%20Kitchen.png" alt="" decoding="async">
+          </div>
         </div>
         <div class="week-heading"><div><p class="eyebrow">Meal plan</p><h2 id="weekRange">This Friday → next Friday</h2></div><span class="pill">8 days, intentionally</span></div>
         <div id="mealPlan" class="meal-grid"></div>
@@ -90,10 +98,10 @@
       </section>
 
       <section class="page" data-page="pantry">
-        <div class="page-heading"><div><p class="eyebrow">Pantry inventory</p><h2>Shelf-by-shelf, not spreadsheet-by-spreadsheet</h2><p>Baking, spices, snacks, staples, and anything else worth knowing before you shop.</p></div></div>
+        <div class="page-heading"><div><p class="eyebrow">Pantry inventory</p><h2>Shelf-by-shelf, not spreadsheet-by-spreadsheet</h2><p>Baking, fruit, spices, snacks, staples, and anything else worth knowing before you shop.</p></div></div>
         <article class="card inventory-entry">
           <form data-inventory-form="pantry" class="inventory-form">
-            <input name="name" required autocomplete="off" placeholder="Oreos, flour, olive oil…">
+            <input name="name" required autocomplete="off" placeholder="Oreos, flour, apples, olive oil…">
             <input name="quantity" autocomplete="off" placeholder="1 jar / half bag / 2 boxes">
             <select name="category" aria-label="Pantry category"></select>
             <select name="status" aria-label="Pantry amount"></select>
@@ -113,14 +121,16 @@
             <input name="quantity" autocomplete="off" placeholder="Half gallon / 1 tub / 6 slices">
             <select name="category" aria-label="Fridge category"></select>
             <select name="status" aria-label="Fridge amount"></select>
+            <input class="inventory-note-input" name="notes" autocomplete="off" placeholder="Expiration date / notes">
             <button class="primary" type="submit">Add fridge item</button>
           </form>
+          <p class="hint">Expiration date / notes is intentionally free text: “Aug 14,” “opened Tuesday,” or “use first” all work.</p>
         </article>
         <div id="fridgeList"></div>
       </section>
 
       <section class="page" data-page="freezer">
-        <div class="page-heading"><div><p class="eyebrow">Freezer inventory</p><h2>Know which frozen tundra contains dinner</h2><p>Track freezer meals, meat, vegetables, bread, treats, and whether they live upstairs or in the chest freezer.</p></div></div>
+        <div class="page-heading"><div><p class="eyebrow">Freezer inventory</p><h2>Know which frozen tundra contains dinner</h2><p>Track freezer meals, meat, vegetables, fruit, bread, treats, and whether they live upstairs or in the chest freezer.</p></div></div>
         <article class="card inventory-entry">
           <form data-inventory-form="freezer" class="inventory-form freezer-form">
             <input name="name" required autocomplete="off" placeholder="Butter chicken, chicken thighs, waffles…">
@@ -128,8 +138,10 @@
             <select name="category" aria-label="Freezer category"></select>
             <select name="location" aria-label="Freezer location"></select>
             <select name="status" aria-label="Freezer amount"></select>
+            <input class="inventory-note-input" name="notes" autocomplete="off" placeholder="Expiration date / notes">
             <button class="primary" type="submit">Add freezer item</button>
           </form>
+          <p class="hint">Use this for dates or anything Future You needs to know: “best by Sep 2,” “opened,” “Porter’s,” etc.</p>
         </article>
         <div id="freezerList"></div>
       </section>
@@ -165,44 +177,6 @@
   <dialog id="recipeViewDialog"><article class="dialog-card recipe-view" id="recipeView"></article></dialog>
   <div class="toast" id="toast"><strong></strong><span></span></div>
   <script src="/app.js" defer></script>
-  <script>
-    (() => {
-      const STORAGE_KEY = 'pantry-raccoon:v1';
-      const specials = {
-        'special:out': ['Go out to Eat', 'Nobody is cooking tonight.'],
-        'special:leftovers': ['Leftovers', 'Nobody needs to start from scratch tonight.'],
-        'special:freezer': ['Freezer / Heat & Eat', 'Dinner is deliberately easy tonight.'],
-        'special:undecided': ['Undecided', 'Cook not assigned yet.']
-      };
-      const dateKey = date => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-      function readState(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');}catch{return{};} }
-      function updateTonight(){
-        const name = document.getElementById('tonightMealName');
-        const cook = document.getElementById('tonightCook');
-        const actions = document.getElementById('tonightActions');
-        if(!name || !cook || !actions) return;
-        const state = readState();
-        const slot = state.plan?.[`${dateKey(new Date())}:dinner`];
-        if(!slot?.choice){ name.textContent='Nothing planned yet'; cook.textContent='Cook not assigned yet.'; actions.innerHTML=''; return; }
-        if(slot.choice.startsWith('recipe:')){
-          const id = slot.choice.slice(7);
-          const recipe = Array.isArray(state.recipes) ? state.recipes.find(item => item.id === id) : null;
-          name.textContent = recipe?.name || 'Dinner is planned';
-          cook.textContent = slot.cook && slot.cook !== 'Unassigned' ? `${slot.cook} is cooking tonight.` : 'Cook not assigned yet.';
-          actions.innerHTML = recipe ? `<button type="button" class="primary" data-view-recipe="${id}">View Recipe</button><button type="button" class="secondary" data-print-recipe="${id}">Print</button>` : '';
-          return;
-        }
-        const special = specials[slot.choice] || ['Dinner is planned',''];
-        name.textContent = special[0];
-        cook.textContent = slot.cook && !['Nobody','Unassigned'].includes(slot.cook) ? `${slot.cook} is handling dinner tonight.` : special[1];
-        actions.innerHTML='';
-      }
-      document.addEventListener('DOMContentLoaded', () => setTimeout(updateTonight, 0), {once:true});
-      document.addEventListener('change', event => {
-        if(event.target.matches('[data-plan-choice],[data-plan-cook]')) setTimeout(updateTonight,0);
-      });
-      window.addEventListener('storage', event => { if(event.key === STORAGE_KEY) updateTonight(); });
-    })();
-  </script>
+  <script src="/stable-ui.js" defer></script>
 </body>
 </html>
