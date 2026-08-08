@@ -1,4 +1,4 @@
-const CACHE = 'pancoon-v6';
+const CACHE = 'pancoon-v7';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -7,6 +7,7 @@ const APP_SHELL = [
   '/inventory-dates.js',
   '/dashboard-nav.js',
   '/pancoon-polish.js',
+  '/pancoon-hotfix.js',
   '/manifest.webmanifest',
   '/assets/PanCoon%20App%20Icon.png',
   '/assets/Home%20Page%20Dinner%20Landscape-Raccon%20on%20left.png',
