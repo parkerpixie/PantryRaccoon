@@ -4,30 +4,31 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#2c2930">
-  <meta name="description" content="PanCoon meal planning, recipe, pantry and grocery command center.">
+  <meta name="description" content="PanCoon meal planning, recipes, kitchen inventory, and grocery review.">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="PanCoon">
   <title>PanCoon</title>
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="apple-touch-icon" href="/assets/pancoon-icon-192.png">
-  <link rel="icon" href="/assets/pancoon-icon-192.png" type="image/png">
+  <link rel="icon" href="/assets/pancoon-icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
   <div class="shell">
     <aside class="sidebar">
       <a class="brand" href="#plan" aria-label="PanCoon home">
-        <img src="/assets/pantry-raccoon-mascot.webp" alt="PanCoon raccoon mascot">
+        <img src="/assets/pancoon-icon.svg" alt="PanCoon raccoon mascot">
         <span><strong>PanCoon</strong><small>Meals without the kitchen chaos</small></span>
       </a>
       <nav id="nav">
         <button data-route="plan" class="active">Plan</button>
         <button data-route="recipes">Recipes</button>
         <button data-route="pantry">Pantry</button>
+        <button data-route="fridge">Fridge</button>
+        <button data-route="freezer">Freezer</button>
         <button data-route="grocery">Grocery</button>
       </nav>
-      <div class="sidebar-note"><strong>Local-first on purpose</strong><p>This first version keeps the kitchen brain on this device while the core workflow proves itself.</p></div>
+      <div class="sidebar-note"><strong>Local-first on purpose</strong><p>Kitchen data stays on this device while the core workflow proves itself.</p></div>
     </aside>
 
     <main>
@@ -38,46 +39,80 @@
 
       <section class="page active" data-page="plan">
         <div class="hero card">
-          <div><p class="eyebrow">Meal headquarters</p><h2>What are we eating, and who is dealing with it?</h2><p>Choose a recipe or a real-life meal option. PanCoon handles the kitchen details; Manage the Squirrels can eventually just read the dinner memo.</p></div>
-          <img src="/assets/pantry-raccoon-mascot.webp" alt="PanCoon holding a recipe card and grocery basket">
+          <div><p class="eyebrow">Meal headquarters</p><h2>Your week, without opening six different brains.</h2><p>Each day shows what is actually planned. Weekend cards include lunch and dinner, and recipe meals can be viewed or printed right from the plan.</p></div>
+          <img src="/assets/pancoon-mascot.svg" alt="PanCoon holding a recipe card and grocery basket">
         </div>
         <div class="week-heading"><div><p class="eyebrow">Meal plan</p><h2 id="weekRange">This Friday → next Friday</h2></div><span class="pill">8 days, intentionally</span></div>
         <div id="mealPlan" class="meal-grid"></div>
       </section>
 
       <section class="page" data-page="recipes">
-        <div class="page-heading"><div><p class="eyebrow">Recipe box</p><h2>Keep the good stuff</h2><p>Paste a recipe URL, save a family recipe, print it, email it, and use it in the meal plan.</p></div></div>
+        <div class="page-heading"><div><p class="eyebrow">Recipe box</p><h2>Keep the good stuff</h2><p>Paste a URL, save a family recipe, print it, email it, and use it in the meal plan.</p></div></div>
         <article class="card import-card">
           <form id="recipeImportForm">
             <label><span>Recipe URL</span><input name="recipeUrl" type="url" required placeholder="https://www.example.com/amazing-dinner"></label>
             <label><span>Category</span><select name="category"><option>Dinner</option><option>Lunch</option><option>Side</option><option>Dessert</option></select></label>
             <button class="primary" type="submit">Create recipe from URL</button>
           </form>
-          <p class="hint" id="importStatus">PanCoon will read structured recipe data when the site provides it.</p>
+          <p class="hint" id="importStatus">PanCoon reads structured recipe data when a site provides it.</p>
         </article>
         <div class="recipe-tools"><input id="recipeSearch" placeholder="Search recipes…"><button class="secondary" id="manualRecipeButton">Add family recipe</button></div>
         <div id="recipeShelf" class="recipe-grid"></div>
       </section>
 
       <section class="page" data-page="pantry">
-        <div class="page-heading"><div><p class="eyebrow">Pantry inventory</p><h2>What is already in the house?</h2><p>Plenty disappears from the shopping list. Low gets flagged. Out goes straight to buy.</p></div></div>
-        <article class="card">
-          <form id="pantryForm" class="inline-form">
-            <input name="name" required autocomplete="off" placeholder="Olive oil, rice, broccoli…">
-            <input name="quantity" autocomplete="off" placeholder="2 jars / half bag">
-            <select name="status"><option value="plenty">Plenty</option><option value="low">Low</option><option value="out">Out</option></select>
+        <div class="page-heading"><div><p class="eyebrow">Pantry inventory</p><h2>Shelf-by-shelf, not spreadsheet-by-spreadsheet</h2><p>Baking, spices, snacks, staples, and anything else worth knowing before you shop.</p></div></div>
+        <article class="card inventory-entry">
+          <form data-inventory-form="pantry" class="inventory-form">
+            <input name="name" required autocomplete="off" placeholder="Oreos, flour, olive oil…">
+            <input name="quantity" autocomplete="off" placeholder="1 jar / half bag / 2 boxes">
+            <select name="category" aria-label="Pantry category"></select>
+            <select name="status" aria-label="Pantry amount"></select>
             <button class="primary" type="submit">Add pantry item</button>
           </form>
-          <p class="hint">Designed for fast shelf-by-shelf entry. Add only the level of detail that will actually help you shop.</p>
+          <p class="hint">Plenty, Half Full, Low, or Out. Use only as much detail as Future You will actually appreciate.</p>
         </article>
-        <div id="pantryList" class="pantry-grid"></div>
+        <div id="pantryList"></div>
+      </section>
+
+      <section class="page" data-page="fridge">
+        <div class="page-heading"><div><p class="eyebrow">Fridge inventory</p><h2>Cold things with expiration dates and ambitions</h2><p>Produce, dairy, deli, condiments, drinks, leftovers, and the mystery container you should probably investigate.</p></div></div>
+        <article class="card inventory-entry">
+          <form data-inventory-form="fridge" class="inventory-form">
+            <input name="name" required autocomplete="off" placeholder="Milk, spinach, deli turkey…">
+            <input name="quantity" autocomplete="off" placeholder="Half gallon / 1 tub / 6 slices">
+            <select name="category" aria-label="Fridge category"></select>
+            <select name="status" aria-label="Fridge amount"></select>
+            <button class="primary" type="submit">Add fridge item</button>
+          </form>
+        </article>
+        <div id="fridgeList"></div>
+      </section>
+
+      <section class="page" data-page="freezer">
+        <div class="page-heading"><div><p class="eyebrow">Freezer inventory</p><h2>Know which frozen tundra contains dinner</h2><p>Track freezer meals, meat, vegetables, bread, treats, and whether they live upstairs or in the chest freezer.</p></div></div>
+        <article class="card inventory-entry">
+          <form data-inventory-form="freezer" class="inventory-form freezer-form">
+            <input name="name" required autocomplete="off" placeholder="Butter chicken, chicken thighs, waffles…">
+            <input name="quantity" autocomplete="off" placeholder="2 bags / 1 meal / 6 portions">
+            <select name="category" aria-label="Freezer category"></select>
+            <select name="location" aria-label="Freezer location"></select>
+            <select name="status" aria-label="Freezer amount"></select>
+            <button class="primary" type="submit">Add freezer item</button>
+          </form>
+        </article>
+        <div id="freezerList"></div>
       </section>
 
       <section class="page" data-page="grocery">
-        <div class="page-heading grocery-heading"><div><p class="eyebrow">Grocery review</p><h2>Meal plan minus what you already have</h2><p>Check anything you already have. Nothing jumps around while you review it.</p></div><div class="button-row"><button class="secondary" id="resetGrocery">Reset review</button><button class="primary" id="copyGrocery">Copy shopping list</button></div></div>
-        <article class="card"><form id="groceryExtraForm" class="inline-form"><input name="name" required placeholder="Add berries, lunch meat, dog treats…"><button class="secondary" type="submit">Add extra item</button></form></article>
+        <div class="page-heading grocery-heading">
+          <div><p class="eyebrow">Grocery review</p><h2>Buy it, check it off, clear the evidence</h2><p>Checked items move to Ordered / Completed. Clear them after you shop, then add forgotten things during the week.</p></div>
+          <div class="button-row"><button class="primary" id="copyGrocery">Copy shopping list</button></div>
+        </div>
+        <article class="card"><form id="groceryExtraForm" class="inline-form"><input name="name" required placeholder="Forgot berries? Lunch meat? Dog treats?"><button class="secondary" type="submit">Add extra item</button></form><p class="hint">Manual extras can also be queued for Manage the Squirrels. The receiving MTS bridge will be connected separately.</p></article>
         <div id="grocerySummary" class="summary-row"></div>
         <div id="groceryList"></div>
+        <div id="groceryCompleted" class="completed-area"></div>
       </section>
     </main>
   </div>
@@ -97,14 +132,12 @@
     </form>
   </dialog>
 
-  <dialog id="recipeViewDialog"><article class="dialog-card" id="recipeView"></article></dialog>
+  <dialog id="recipeViewDialog"><article class="dialog-card recipe-view" id="recipeView"></article></dialog>
   <div class="toast" id="toast"><strong></strong><span></span></div>
   <script src="/app.js" defer></script>
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch(error => console.warn('PanCoon service worker registration failed', error));
-      });
+      window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(error => console.warn('PanCoon service worker registration failed', error)));
     }
   </script>
 </body>

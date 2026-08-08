@@ -1,7 +1,7 @@
 {
   "name": "PanCoon",
   "short_name": "PanCoon",
-  "description": "Meal planning, recipes, pantry inventory, and grocery review without the kitchen chaos.",
+  "description": "Meal planning, recipes, pantry, fridge, freezer, and grocery review without the kitchen chaos.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -9,16 +9,10 @@
   "theme_color": "#2c2930",
   "icons": [
     {
-      "src": "/assets/pancoon-icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
+      "src": "/assets/pancoon-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
-    },
-    {
-      "src": "/assets/pancoon-icon-512.webp",
-      "sizes": "512x512",
-      "type": "image/webp",
-      "purpose": "any"
     }
   ]
 }
