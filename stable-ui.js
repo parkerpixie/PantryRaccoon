@@ -3,6 +3,7 @@
 
   const STATE_KEY = 'pantry-raccoon:v1';
   const NOTES_KEY = 'pantry-raccoon:inventory-notes:v1';
+  const ZINES_KEY = 'pantry-raccoon:recipe-zines:v1';
   const SPECIALS = {
     'special:out': ['Go out to Eat', 'Nobody is cooking tonight.'],
     'special:leftovers': ['Leftovers', 'Nobody needs to start from scratch tonight.'],
@@ -12,6 +13,8 @@
   const STATUS_OPTIONS = [
     ['plenty','Plenty'],['half','Half Full'],['low','Low'],['out','Out']
   ];
+  const INVENTORY_KINDS = ['pantry','fridge','freezer'];
+  const inventoryView = Object.fromEntries(INVENTORY_KINDS.map(kind => [kind,{query:'',filter:'all'}]));
 
   let fiveAmTimer = null;
 
@@ -32,6 +35,25 @@
 
   function readState(){ return readJson(STATE_KEY, {}); }
   function readNotes(){ return readJson(NOTES_KEY, {}); }
+  function readZines(){ return readJson(ZINES_KEY, {}); }
+
+  function injectStyles(){
+    if (document.getElementById('pancoon-stable-feature-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'pancoon-stable-feature-styles';
+    style.textContent = `
+      .inventory-tools{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:0 0 18px;padding:14px 16px;background:#fffaf3;border:1px solid var(--line);border-radius:16px}
+      .inventory-search{flex:1 1 260px;max-width:520px}.inventory-search input{background:#fff}
+      .inventory-filters{display:flex;gap:7px;flex-wrap:wrap}.inventory-filter{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:8px 11px;font-size:11px;font-weight:800}.inventory-filter.active{background:var(--plum);border-color:var(--plum);color:#fff}
+      .inventory-item[data-stock="plenty"]{border-color:#77a393}.inventory-item[data-stock="half"]{border-color:#8d89ad}.inventory-item[data-stock="low"]{border-color:#d29a45}.inventory-item[data-stock="out"]{border-color:#b75d58}.inventory-item[hidden],.inventory-group[hidden]{display:none!important}
+      .inventory-result-note{font-size:11px;color:var(--muted);margin-left:4px}
+      .zine-badge{display:inline-flex;align-items:center;width:max-content;margin:8px 0 0;padding:5px 8px;border-radius:999px;background:#f3e6cf;color:#76561f;font-size:10px;font-weight:900;letter-spacing:.02em}
+      .recipe-card-actions [data-open-zine],.recipe-view-actions [data-open-zine]{border-color:#c8a66b;background:#fff9ed;color:#654b24}
+      .recipe-zine-field small{font-weight:500;color:var(--muted);line-height:1.4}
+      @media(max-width:760px){.inventory-tools{align-items:stretch}.inventory-search{max-width:none}.inventory-filters{overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px}.inventory-filter{white-space:nowrap}}
+    `;
+    document.head.appendChild(style);
+  }
 
   function dateKey(date){
     return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
@@ -42,6 +64,10 @@
     if (date.getHours() < 5) date.setDate(date.getDate() - 1);
     date.setHours(0,0,0,0);
     return date;
+  }
+
+  function zinePathFor(recipeId){
+    return readZines()[recipeId] || '';
   }
 
   function updateTonight(){
@@ -68,7 +94,7 @@
         ? `${slot.cook} is cooking tonight.`
         : 'Cook not assigned yet.';
       actions.innerHTML = recipe
-        ? `<button type="button" class="primary" data-view-recipe="${esc(id)}">View Recipe</button><button type="button" class="secondary" data-print-recipe="${esc(id)}">Print</button>`
+        ? `<button type="button" class="primary" data-view-recipe="${esc(id)}">View Recipe</button><button type="button" class="secondary" data-print-recipe="${esc(id)}">Print</button>${zinePathFor(id) ? `<button type="button" class="secondary" data-open-zine="${esc(id)}">Open Recipe Zine</button>` : ''}`
         : '';
       return;
     }
@@ -106,6 +132,11 @@
 
   function inventoryItemId(card){
     return card.querySelector('[data-inventory-status]')?.dataset.inventoryStatus || '';
+  }
+
+  function inventoryStatus(card){
+    const status = card.querySelector('.status');
+    return STATUS_OPTIONS.find(([value]) => status?.classList.contains(value))?.[0] || '';
   }
 
   function displayNote(item, kind, notes){
@@ -163,11 +194,58 @@
     target.appendChild(section);
   }
 
+  function ensureInventoryTools(kind){
+    const target = document.getElementById(`${kind}List`);
+    if (!target || document.querySelector(`[data-inventory-tools="${kind}"]`)) return;
+    const tools = document.createElement('div');
+    tools.className = 'inventory-tools';
+    tools.dataset.inventoryTools = kind;
+    tools.innerHTML = `
+      <label class="inventory-search"><input type="search" data-inventory-search="${kind}" placeholder="Search ${kind}…" autocomplete="off" aria-label="Search ${kind}"></label>
+      <div class="inventory-filters" aria-label="Filter ${kind} by amount">
+        <button type="button" class="inventory-filter active" data-inventory-filter="all" data-inventory-kind="${kind}">All</button>
+        <button type="button" class="inventory-filter" data-inventory-filter="plenty" data-inventory-kind="${kind}">Plenty</button>
+        <button type="button" class="inventory-filter" data-inventory-filter="half" data-inventory-kind="${kind}">Half Full</button>
+        <button type="button" class="inventory-filter" data-inventory-filter="low" data-inventory-kind="${kind}">Low</button>
+        <button type="button" class="inventory-filter" data-inventory-filter="out" data-inventory-kind="${kind}">Out</button>
+        <button type="button" class="inventory-filter" data-inventory-filter="attention" data-inventory-kind="${kind}">Low + Out</button>
+      </div>`;
+    target.parentNode.insertBefore(tools, target);
+  }
+
+  function applyInventoryFilter(kind){
+    const target = document.getElementById(`${kind}List`);
+    if (!target) return;
+    const view = inventoryView[kind];
+    const query = view.query.trim().toLowerCase();
+
+    target.querySelectorAll('.inventory-item').forEach(card => {
+      const name = (card.querySelector('strong')?.textContent || '').toLowerCase();
+      const status = inventoryStatus(card);
+      card.dataset.stock = status;
+      const matchesQuery = !query || name.includes(query);
+      const matchesFilter = view.filter === 'all' || status === view.filter || (view.filter === 'attention' && ['low','out'].includes(status));
+      card.hidden = !(matchesQuery && matchesFilter);
+    });
+
+    target.querySelectorAll('.inventory-group').forEach(group => {
+      const cards = [...group.querySelectorAll('.inventory-item')];
+      const visible = cards.filter(card => !card.hidden).length;
+      group.hidden = visible === 0;
+      const count = group.querySelector(':scope > h3 span');
+      if (count) count.textContent = (query || view.filter !== 'all') ? `${visible}/${cards.length}` : String(cards.length);
+    });
+  }
+
   function refreshInventoryEnhancements(){
     ensureFruitOption();
     renderFruitGroup();
     refreshInventoryNotes('fridge');
     refreshInventoryNotes('freezer');
+    INVENTORY_KINDS.forEach(kind => {
+      ensureInventoryTools(kind);
+      applyInventoryFilter(kind);
+    });
   }
 
   function captureInventorySubmit(event){
@@ -209,18 +287,153 @@
     if (changed) writeJson(NOTES_KEY, notes);
   }
 
+  function normalizeZinePath(value){
+    const text = String(value || '').trim();
+    if (!text) return '';
+    if (/^https?:\/\//i.test(text)) return text;
+    if (text.startsWith('/')) return text;
+    if (text.startsWith('assets/')) return `/${text}`;
+    return `/assets/${text}`;
+  }
+
+  function ensureDefaultZines(){
+    const zines = readZines();
+    if (!zines['chicken-shawarma-sheet-pan']){
+      zines['chicken-shawarma-sheet-pan'] = '/assets/Chicken Shawrma Sheet Pan Dinner.png';
+      writeJson(ZINES_KEY, zines);
+    }
+  }
+
+  function ensureZineField(){
+    const form = document.getElementById('recipeForm');
+    if (!form || form.elements.zineAsset) return;
+    const label = document.createElement('label');
+    label.className = 'recipe-zine-field';
+    label.innerHTML = `Recipe Zine asset<input name="zineAsset" placeholder="assets/My Recipe Zine.png"><small>Upload the zine image to the repo's assets folder, then paste its filename or assets/ path here.</small>`;
+    const notesLabel = form.elements.notes?.closest('label');
+    if (notesLabel) form.insertBefore(label, notesLabel);
+    else form.appendChild(label);
+  }
+
+  function populateZineField(recipeId){
+    ensureZineField();
+    const input = document.getElementById('recipeForm')?.elements.zineAsset;
+    if (!input) return;
+    input.value = recipeId ? zinePathFor(recipeId) : '';
+  }
+
+  function saveRecipeZineAfterCoreSave(form){
+    const existingId = form.elements.id?.value || '';
+    const recipeName = form.elements.name?.value.trim() || '';
+    const path = normalizeZinePath(form.elements.zineAsset?.value || '');
+
+    setTimeout(() => {
+      const state = readState();
+      const recipes = Array.isArray(state.recipes) ? state.recipes : [];
+      const recipe = existingId
+        ? recipes.find(item => item.id === existingId)
+        : [...recipes].reverse().find(item => item.name === recipeName);
+      if (!recipe) return;
+      const zines = readZines();
+      if (path) zines[recipe.id] = path;
+      else delete zines[recipe.id];
+      writeJson(ZINES_KEY, zines);
+      decorateRecipeCards();
+      updateTonight();
+    }, 0);
+  }
+
+  function decorateRecipeCards(){
+    const zines = readZines();
+    document.querySelectorAll('#recipeShelf .recipe-card').forEach(card => {
+      const id = card.querySelector('[data-view-recipe]')?.dataset.viewRecipe;
+      card.querySelector('.zine-badge')?.remove();
+      card.querySelector('[data-open-zine]')?.remove();
+      if (!id || !zines[id]) return;
+
+      const badge = document.createElement('span');
+      badge.className = 'zine-badge';
+      badge.textContent = 'Zine available ✨';
+      card.querySelector('.recipe-card-copy h3')?.insertAdjacentElement('afterend', badge);
+
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.openZine = id;
+      button.textContent = 'Open Recipe Zine';
+      card.querySelector('.recipe-card-actions')?.appendChild(button);
+    });
+  }
+
+  function decorateRecipeView(recipeId){
+    const actions = document.querySelector('#recipeViewDialog .recipe-view-actions');
+    if (!actions) return;
+    actions.querySelector('[data-open-zine]')?.remove();
+    if (!zinePathFor(recipeId)) return;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'secondary';
+    button.dataset.openZine = recipeId;
+    button.textContent = 'Open Recipe Zine';
+    actions.appendChild(button);
+  }
+
+  function openZine(recipeId){
+    if (!zinePathFor(recipeId)) return;
+    window.open(`/zine.html?recipe=${encodeURIComponent(recipeId)}`, '_blank', 'noopener');
+  }
+
   function start(){
+    injectStyles();
+    ensureDefaultZines();
+    ensureZineField();
     updateTonight();
     scheduleFiveAmRefresh();
     refreshInventoryEnhancements();
+    setTimeout(decorateRecipeCards, 0);
 
-    document.addEventListener('submit', captureInventorySubmit, true);
+    document.addEventListener('submit', event => {
+      captureInventorySubmit(event);
+      if (event.target.id === 'recipeForm') saveRecipeZineAfterCoreSave(event.target);
+      if (event.target.id === 'recipeImportForm') setTimeout(decorateRecipeCards, 0);
+    }, true);
+
+    document.addEventListener('input', event => {
+      const kind = event.target.dataset.inventorySearch;
+      if (kind && inventoryView[kind]){
+        inventoryView[kind].query = event.target.value;
+        applyInventoryFilter(kind);
+      }
+      if (event.target.id === 'recipeSearch') setTimeout(decorateRecipeCards, 0);
+    });
 
     document.addEventListener('change', event => {
       if (event.target.matches('[data-plan-choice],[data-plan-cook]')) setTimeout(updateTonight, 0);
     });
 
     document.addEventListener('click', event => {
+      const filter = event.target.closest('[data-inventory-filter]');
+      if (filter){
+        const kind = filter.dataset.inventoryKind;
+        inventoryView[kind].filter = filter.dataset.inventoryFilter;
+        document.querySelectorAll(`[data-inventory-filter][data-inventory-kind="${kind}"]`).forEach(button => button.classList.toggle('active', button === filter));
+        applyInventoryFilter(kind);
+        return;
+      }
+
+      const zineButton = event.target.closest('[data-open-zine]');
+      if (zineButton){
+        event.preventDefault();
+        openZine(zineButton.dataset.openZine);
+        return;
+      }
+
+      const edit = event.target.closest('[data-edit-recipe]');
+      if (edit) setTimeout(() => populateZineField(edit.dataset.editRecipe), 0);
+      if (event.target.closest('#manualRecipeButton,#quickRecipeButton')) setTimeout(() => populateZineField(''), 0);
+
+      const view = event.target.closest('[data-view-recipe]');
+      if (view) setTimeout(() => decorateRecipeView(view.dataset.viewRecipe), 0);
+
       if (event.target.closest('[data-inventory-status],[data-remove-inventory]')){
         setTimeout(() => {
           cleanupRemovedNotes();
@@ -233,8 +446,13 @@
       if (event.key === STATE_KEY){
         updateTonight();
         refreshInventoryEnhancements();
+        decorateRecipeCards();
       }
       if (event.key === NOTES_KEY) refreshInventoryEnhancements();
+      if (event.key === ZINES_KEY){
+        updateTonight();
+        decorateRecipeCards();
+      }
     });
   }
 
