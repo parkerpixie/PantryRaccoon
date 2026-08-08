@@ -1,13 +1,12 @@
-const CACHE = 'pancoon-v1';
+const CACHE = 'pancoon-v2';
 const APP_SHELL = [
   '/',
   '/index.html',
   '/styles.css',
   '/app.js',
   '/manifest.webmanifest',
-  '/assets/pantry-raccoon-mascot.webp',
-  '/assets/pancoon-icon-192.png',
-  '/assets/pancoon-icon-512.webp'
+  '/assets/pancoon-mascot.svg',
+  '/assets/pancoon-icon.svg'
 ];
 
 self.addEventListener('install', event => {
@@ -34,7 +33,6 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
-
   const url = new URL(request.url);
   if (url.origin !== self.location.origin || url.pathname.startsWith('/api/') || url.pathname.startsWith('/.netlify/functions/')) return;
 
