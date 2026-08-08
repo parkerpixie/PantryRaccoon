@@ -1,0 +1,16 @@
+name: Validate Inventory Dates
+on:
+  pull_request:
+    paths:
+      - 'inventory-dates.js'
+      - 'index.html'
+      - 'sw.js'
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node --check inventory-dates.js
