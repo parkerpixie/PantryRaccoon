@@ -108,6 +108,121 @@ function metaContent(html, property) {
   return '';
 }
 
+function structuredRecipe(html, sourceUrl, fallbackName) {
+  const scripts = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
+  let recipe = null;
+  for (const match of scripts) {
+    try {
+      recipe = findRecipe(JSON.parse(match[1].trim()));
+      if (recipe) break;
+    } catch (_) {}
+  }
+  if (!recipe) return null;
+
+  const ingredients = arrayify(recipe.recipeIngredient || recipe.ingredients)
+    .map(item => decodeHtmlEntities(String(item).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()))
+    .filter(Boolean);
+  const instructions = instructionText(recipe.recipeInstructions || recipe.instructions).map(decodeHtmlEntities);
+  const prepMinutes = parseDuration(recipe.prepTime);
+  const cookMinutes = parseDuration(recipe.cookTime);
+  const totalMinutes = parseDuration(recipe.totalTime) || ((prepMinutes || 0) + (cookMinutes || 0) || null);
+  const imageValue = recipe.image;
+  const imageUrl = typeof imageValue === 'string'
+    ? imageValue
+    : Array.isArray(imageValue)
+      ? (typeof imageValue[0] === 'string' ? imageValue[0] : imageValue[0]?.url || '')
+      : imageValue?.url || '';
+  const servings = Array.isArray(recipe.recipeYield) ? recipe.recipeYield.join(', ') : String(recipe.recipeYield || '');
+
+  return {
+    name: decodeHtmlEntities(recipe.name || metaContent(html, 'og:title') || fallbackName),
+    ingredients,
+    instructions,
+    prepMinutes,
+    cookMinutes,
+    totalMinutes,
+    servings: decodeHtmlEntities(servings),
+    imageUrl,
+    sourceUrl,
+    importMethod: 'structured'
+  };
+}
+
+function cleanMarkdownLine(line) {
+  return String(line || '')
+    .replace(/^\s*(?:[-*+]\s+|\d+[.)]\s+)/, '')
+    .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+    .replace(/[*_`#]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function markdownSection(markdown, names) {
+  const lines = String(markdown || '').split(/\r?\n/);
+  let inSection = false;
+  const out = [];
+  for (const raw of lines) {
+    const line = raw.trim();
+    const heading = line.match(/^#{1,6}\s+(.+)$/);
+    if (heading) {
+      const title = cleanMarkdownLine(heading[1]).toLowerCase();
+      if (names.some(name => title.includes(name))) {
+        inSection = true;
+        continue;
+      }
+      if (inSection) break;
+    }
+    if (!inSection) continue;
+    if (!line) continue;
+    if (/^[-*+]\s+/.test(line) || /^\d+[.)]\s+/.test(line)) {
+      const clean = cleanMarkdownLine(line);
+      if (clean) out.push(clean);
+    }
+  }
+  return out;
+}
+
+async function readerFallback(target, signal) {
+  const readerUrl = `https://r.jina.ai/${target.href}`;
+  const page = await fetch(readerUrl, {
+    signal,
+    headers: {
+      'accept': 'text/plain, text/markdown;q=0.9, */*;q=0.8',
+      'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1'
+    }
+  });
+  if (!page.ok) throw new Error(`Reader fallback returned ${page.status}`);
+  const markdown = await page.text();
+  if (!markdown || markdown.length > 5_000_000) throw new Error('Reader fallback was empty or too large');
+
+  const titleMatch = markdown.match(/^#\s+(.+)$/m) || markdown.match(/^Title:\s*(.+)$/mi);
+  const ingredients = markdownSection(markdown, ['ingredients']);
+  let instructions = markdownSection(markdown, ['directions', 'instructions', 'method', 'preparation']);
+
+  if (!instructions.length) {
+    const lines = markdown.split(/\r?\n/);
+    instructions = lines
+      .filter(line => /^\s*\d+[.)]\s+/.test(line))
+      .map(cleanMarkdownLine)
+      .filter(Boolean)
+      .slice(0, 40);
+  }
+
+  if (!ingredients.length) return null;
+  return {
+    name: cleanMarkdownLine(titleMatch?.[1] || target.hostname),
+    ingredients: ingredients.slice(0, 80),
+    instructions: instructions.slice(0, 40),
+    prepMinutes: null,
+    cookMinutes: null,
+    totalMinutes: null,
+    servings: '',
+    imageUrl: '',
+    sourceUrl: target.href,
+    importMethod: 'reader-fallback'
+  };
+}
+
 exports.handler = async event => {
   if (event.httpMethod && event.httpMethod !== 'GET') return response(405, { error: 'Method not allowed' });
   const rawUrl = event.queryStringParameters?.url;
@@ -122,61 +237,50 @@ exports.handler = async event => {
   }
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10000);
+  const timer = setTimeout(() => controller.abort(), 14000);
   try {
-    const page = await fetch(target.href, {
-      redirect: 'follow',
-      signal: controller.signal,
-      headers: {
-        'user-agent': 'Mozilla/5.0 (compatible; PantryRaccoon/1.0)',
-        'accept': 'text/html,application/xhtml+xml'
+    let directStatus = null;
+    try {
+      const page = await fetch(target.href, {
+        redirect: 'follow',
+        signal: controller.signal,
+        headers: {
+          'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
+          'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'accept-language': 'en-US,en;q=0.9',
+          'cache-control': 'no-cache',
+          'pragma': 'no-cache'
+        }
+      });
+      directStatus = page.status;
+      if (page.ok) {
+        const html = await page.text();
+        if (html.length > 5_000_000) return response(413, { error: 'That recipe page is too large to parse safely.' });
+        const structured = structuredRecipe(html, page.url || target.href, target.hostname);
+        if (structured) return response(200, structured);
       }
-    });
-    if (!page.ok) return response(502, { error: `The recipe site returned ${page.status}.` });
-    const html = await page.text();
-    if (html.length > 5_000_000) return response(413, { error: 'That recipe page is too large to parse safely.' });
-
-    const scripts = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
-    let recipe = null;
-    for (const match of scripts) {
-      try {
-        recipe = findRecipe(JSON.parse(match[1].trim()));
-        if (recipe) break;
-      } catch (_) {}
+    } catch (error) {
+      if (error?.name === 'AbortError') throw error;
     }
 
-    if (!recipe) return response(422, { error: 'I found the page, but it did not publish a readable recipe card. Add this one manually instead.' });
+    if ([401, 403, 406, 429, 451, null].includes(directStatus) || directStatus >= 500 || directStatus === 200) {
+      try {
+        const fallback = await readerFallback(target, controller.signal);
+        if (fallback) return response(200, fallback);
+      } catch (error) {
+        if (error?.name === 'AbortError') throw error;
+        console.warn('recipe reader fallback failed', error?.message || error);
+      }
+    }
 
-    const ingredients = arrayify(recipe.recipeIngredient || recipe.ingredients)
-      .map(item => decodeHtmlEntities(String(item).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()))
-      .filter(Boolean);
-    const instructions = instructionText(recipe.recipeInstructions || recipe.instructions).map(decodeHtmlEntities);
-    const prepMinutes = parseDuration(recipe.prepTime);
-    const cookMinutes = parseDuration(recipe.cookTime);
-    const totalMinutes = parseDuration(recipe.totalTime) || ((prepMinutes || 0) + (cookMinutes || 0) || null);
-    const imageValue = recipe.image;
-    const imageUrl = typeof imageValue === 'string'
-      ? imageValue
-      : Array.isArray(imageValue)
-        ? (typeof imageValue[0] === 'string' ? imageValue[0] : imageValue[0]?.url || '')
-        : imageValue?.url || '';
-    const servings = Array.isArray(recipe.recipeYield) ? recipe.recipeYield.join(', ') : String(recipe.recipeYield || '');
-
-    return response(200, {
-      name: decodeHtmlEntities(recipe.name || metaContent(html, 'og:title') || target.hostname),
-      ingredients,
-      instructions,
-      prepMinutes,
-      cookMinutes,
-      totalMinutes,
-      servings: decodeHtmlEntities(servings),
-      imageUrl,
-      sourceUrl: page.url || target.href
-    });
+    if (directStatus && directStatus !== 200) {
+      return response(502, { error: `The recipe site blocked direct access (${directStatus}), and the fallback reader could not extract the recipe.` });
+    }
+    return response(422, { error: 'I found the page, but it did not publish a readable recipe card. Add this one manually instead.' });
   } catch (error) {
     if (error?.name === 'AbortError') return response(504, { error: 'That recipe site took too long to respond.' });
     console.error('recipe-context failed', error);
-    return response(500, { error: 'PantryRaccoon could not read that recipe page.' });
+    return response(500, { error: 'PanCoon could not read that recipe page.' });
   } finally {
     clearTimeout(timer);
   }
