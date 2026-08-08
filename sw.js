@@ -1,4 +1,4 @@
-const CACHE = 'pancoon-v5';
+const CACHE = 'pancoon-v6';
 const APP_SHELL = [
   '/',
   '/index.html',
@@ -6,9 +6,15 @@ const APP_SHELL = [
   '/app.js',
   '/inventory-dates.js',
   '/dashboard-nav.js',
+  '/pancoon-polish.js',
   '/manifest.webmanifest',
-  '/assets/pancoon-mascot.svg',
-  '/assets/PanCoon%20App%20Icon.png'
+  '/assets/PanCoon%20App%20Icon.png',
+  '/assets/Home%20Page%20Dinner%20Landscape-Raccon%20on%20left.png',
+  '/assets/Mobile%20Experience%20Home%20Page%20Dinner%20Portrait-Raccoon%20on%20Top.png',
+  '/assets/Chicken%20Shawrma%20Sheet%20Pan%20Dinner.png',
+  '/assets/Mushroom%20Detail.png',
+  '/assets/Pink%20Kitchaid%20mixer%20with%20cutting%20board%20and%20utensials.png',
+  '/assets/Talbot%20kitchen%20with%20Luna%20and%20Ozzy.png'
 ];
 
 self.addEventListener('install', event => {
