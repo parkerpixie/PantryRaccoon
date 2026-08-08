@@ -263,7 +263,7 @@ exports.handler = async event => {
       if (error?.name === 'AbortError') throw error;
     }
 
-    if ([401, 403, 406, 429, 451, null].includes(directStatus) || directStatus >= 500 || directStatus === 200) {
+    if (directStatus === null || directStatus === 200 || directStatus >= 400) {
       try {
         const fallback = await readerFallback(target, controller.signal);
         if (fallback) return response(200, fallback);
