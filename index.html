@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2c2930">
+  <meta name="description" content="PanCoon meal planning, recipe, pantry and grocery command center.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="PanCoon">
+  <title>PanCoon</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/assets/pancoon-icon-192.png">
+  <link rel="icon" href="/assets/pancoon-icon-192.png" type="image/png">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="#plan" aria-label="PanCoon home">
+        <img src="/assets/pantry-raccoon-mascot.webp" alt="PanCoon raccoon mascot">
+        <span><strong>PanCoon</strong><small>Meals without the kitchen chaos</small></span>
+      </a>
+      <nav id="nav">
+        <button data-route="plan" class="active">Plan</button>
+        <button data-route="recipes">Recipes</button>
+        <button data-route="pantry">Pantry</button>
+        <button data-route="grocery">Grocery</button>
+      </nav>
+      <div class="sidebar-note"><strong>Local-first on purpose</strong><p>This first version keeps the kitchen brain on this device while the core workflow proves itself.</p></div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div><p class="eyebrow">Kitchen command center</p><h1 id="pageTitle">This week</h1><p id="pageSubtitle">Friday through Friday. Weekend lunches included.</p></div>
+        <button class="primary" id="quickRecipeButton">+ Add recipe</button>
+      </header>
+
+      <section class="page active" data-page="plan">
+        <div class="hero card">
+          <div><p class="eyebrow">Meal headquarters</p><h2>What are we eating, and who is dealing with it?</h2><p>Choose a recipe or a real-life meal option. PanCoon handles the kitchen details; Manage the Squirrels can eventually just read the dinner memo.</p></div>
+          <img src="/assets/pantry-raccoon-mascot.webp" alt="PanCoon holding a recipe card and grocery basket">
+        </div>
+        <div class="week-heading"><div><p class="eyebrow">Meal plan</p><h2 id="weekRange">This Friday → next Friday</h2></div><span class="pill">8 days, intentionally</span></div>
+        <div id="mealPlan" class="meal-grid"></div>
+      </section>
+
+      <section class="page" data-page="recipes">
+        <div class="page-heading"><div><p class="eyebrow">Recipe box</p><h2>Keep the good stuff</h2><p>Paste a recipe URL, save a family recipe, print it, email it, and use it in the meal plan.</p></div></div>
+        <article class="card import-card">
+          <form id="recipeImportForm">
+            <label><span>Recipe URL</span><input name="recipeUrl" type="url" required placeholder="https://www.example.com/amazing-dinner"></label>
+            <label><span>Category</span><select name="category"><option>Dinner</option><option>Lunch</option><option>Side</option><option>Dessert</option></select></label>
+            <button class="primary" type="submit">Create recipe from URL</button>
+          </form>
+          <p class="hint" id="importStatus">PanCoon will read structured recipe data when the site provides it.</p>
+        </article>
+        <div class="recipe-tools"><input id="recipeSearch" placeholder="Search recipes…"><button class="secondary" id="manualRecipeButton">Add family recipe</button></div>
+        <div id="recipeShelf" class="recipe-grid"></div>
+      </section>
+
+      <section class="page" data-page="pantry">
+        <div class="page-heading"><div><p class="eyebrow">Pantry inventory</p><h2>What is already in the house?</h2><p>Plenty disappears from the shopping list. Low gets flagged. Out goes straight to buy.</p></div></div>
+        <article class="card">
+          <form id="pantryForm" class="inline-form">
+            <input name="name" required autocomplete="off" placeholder="Olive oil, rice, broccoli…">
+            <input name="quantity" autocomplete="off" placeholder="2 jars / half bag">
+            <select name="status"><option value="plenty">Plenty</option><option value="low">Low</option><option value="out">Out</option></select>
+            <button class="primary" type="submit">Add pantry item</button>
+          </form>
+          <p class="hint">Designed for fast shelf-by-shelf entry. Add only the level of detail that will actually help you shop.</p>
+        </article>
+        <div id="pantryList" class="pantry-grid"></div>
+      </section>
+
+      <section class="page" data-page="grocery">
+        <div class="page-heading grocery-heading"><div><p class="eyebrow">Grocery review</p><h2>Meal plan minus what you already have</h2><p>Check anything you already have. Nothing jumps around while you review it.</p></div><div class="button-row"><button class="secondary" id="resetGrocery">Reset review</button><button class="primary" id="copyGrocery">Copy shopping list</button></div></div>
+        <article class="card"><form id="groceryExtraForm" class="inline-form"><input name="name" required placeholder="Add berries, lunch meat, dog treats…"><button class="secondary" type="submit">Add extra item</button></form></article>
+        <div id="grocerySummary" class="summary-row"></div>
+        <div id="groceryList"></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="recipeDialog">
+    <form id="recipeForm" class="dialog-card">
+      <button type="button" class="dialog-close" data-close-dialog>×</button>
+      <p class="eyebrow">Recipe</p><h2 id="recipeDialogTitle">Add family recipe</h2>
+      <input type="hidden" name="id">
+      <div class="form-two"><label>Name<input name="name" required></label><label>Created by<input name="createdBy" placeholder="Parker, Blake, Porter…"></label></div>
+      <div class="form-three"><label>Prep minutes<input name="prepMinutes" type="number" min="0"></label><label>Cook minutes<input name="cookMinutes" type="number" min="0"></label><label>Servings<input name="servings"></label></div>
+      <label>Source URL<input name="url" type="url"></label>
+      <label>Ingredients, one per line<textarea name="ingredients" rows="8" required></textarea></label>
+      <label>Instructions, one step per line<textarea name="instructions" rows="8"></textarea></label>
+      <label>Notes<textarea name="notes" rows="3"></textarea></label>
+      <div class="button-row"><button class="primary" type="submit">Save recipe</button><button class="secondary" type="button" data-close-dialog>Cancel</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="recipeViewDialog"><article class="dialog-card" id="recipeView"></article></dialog>
+  <div class="toast" id="toast"><strong></strong><span></span></div>
+  <script src="/app.js" defer></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(error => console.warn('PanCoon service worker registration failed', error));
+      });
+    }
+  </script>
+</body>
+</html>
