@@ -105,3 +105,12 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once:true});
   else start();
 })();
+
+(() => {
+  if (document.querySelector('script[data-pancoon-polish]')) return;
+  const script = document.createElement('script');
+  script.src = '/pancoon-polish.js';
+  script.async = false;
+  script.dataset.pancoonPolish = 'true';
+  document.head.appendChild(script);
+})();
