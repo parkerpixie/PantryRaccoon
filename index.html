@@ -135,6 +135,7 @@
   <dialog id="recipeViewDialog"><article class="dialog-card recipe-view" id="recipeView"></article></dialog>
   <div class="toast" id="toast"><strong></strong><span></span></div>
   <script src="/app.js" defer></script>
+  <script src="/inventory-dates.js" defer></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(error => console.warn('PanCoon service worker registration failed', error)));
