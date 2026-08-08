@@ -1,0 +1,25 @@
+name: Validate PantryRaccoon
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  syntax-and-files:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check JavaScript syntax
+        run: |
+          node --check app.js
+          node --check netlify/functions/recipe-context.js
+      - name: Confirm app files
+        run: |
+          test -f index.html
+          test -f styles.css
+          test -f app.js
+          test -f netlify.toml
