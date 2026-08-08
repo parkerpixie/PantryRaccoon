@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#40293e">
+  <meta name="apple-mobile-web-app-title" content="PanCoon">
+  <title>Recipe Zine · PanCoon</title>
+  <link rel="icon" href="/assets/PanCoon%20App%20Icon.png" type="image/png">
+  <style>
+    :root{--ink:#2d2930;--muted:#756f76;--paper:#f7f3ed;--cream:#fffaf3;--line:#ddd5cb;--plum:#5b3b58;--plum-dark:#40293e;--teal:#4f8077;--brass:#b9863f;--shadow:0 22px 70px rgba(54,42,49,.16)}
+    *{box-sizing:border-box}html{background:var(--paper);color:var(--ink);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}body{margin:0;min-height:100vh;background:radial-gradient(circle at 50% -20%,#fffaf3 0,#f7f3ed 48%,#efe6dc 100%)}a{color:inherit}
+    .zine-shell{width:min(1100px,calc(100% - 28px));margin:0 auto;padding:28px 0 60px}.zine-top{display:flex;justify-content:space-between;gap:20px;align-items:end;margin-bottom:20px}.back{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:var(--teal);font-weight:850;font-size:13px}.eyebrow{text-transform:uppercase;letter-spacing:.14em;font-size:10px;font-weight:900;color:var(--teal);margin:0 0 5px}.zine-top h1{margin:0;font-family:Georgia,serif;font-size:clamp(28px,4.8vw,52px);line-height:1.03;letter-spacing:-.035em}.zine-frame{padding:12px;background:var(--plum-dark);border-radius:24px;box-shadow:var(--shadow)}.zine-paper{background:var(--cream);border-radius:15px;overflow:hidden;min-height:240px;display:grid;place-items:center}.zine-paper img{display:block;width:100%;height:auto}.empty{padding:60px 28px;text-align:center}.empty h2{font-family:Georgia,serif;font-size:30px;margin:0 0 10px}.empty p{color:var(--muted);line-height:1.6;margin:0 auto 18px;max-width:560px}.empty a{display:inline-block;padding:10px 14px;border-radius:12px;background:var(--plum);color:white;text-decoration:none;font-weight:800}
+    @media(max-width:700px){.zine-shell{padding-top:16px}.zine-top{display:grid;align-items:start}.zine-frame{padding:7px;border-radius:16px}.zine-paper{border-radius:11px}}
+    @media print{body{background:white}.zine-shell{width:100%;margin:0;padding:0}.zine-top{display:none}.zine-frame{padding:0;background:white;box-shadow:none;border-radius:0}.zine-paper{border-radius:0}.zine-paper img{width:100%;max-height:none}}
+  </style>
+</head>
+<body>
+  <main class="zine-shell">
+    <header class="zine-top">
+      <div>
+        <a class="back" href="/#recipes">← Back to Recipes</a>
+        <p class="eyebrow">PanCoon Recipe Zine</p>
+        <h1 id="zineTitle">Recipe Zine</h1>
+      </div>
+    </header>
+    <section class="zine-frame" id="zineFrame">
+      <div class="zine-paper" id="zinePaper"><p>Opening the zine…</p></div>
+    </section>
+  </main>
+  <script>
+    (() => {
+      const STATE_KEY='pantry-raccoon:v1';
+      const ZINES_KEY='pantry-raccoon:recipe-zines:v1';
+      const read=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback));}catch{return fallback;}};
+      const recipeId=new URLSearchParams(location.search).get('recipe')||'';
+      const state=read(STATE_KEY,{});
+      const zines=read(ZINES_KEY,{});
+      const recipe=Array.isArray(state.recipes)?state.recipes.find(item=>item.id===recipeId):null;
+      const path=zines[recipeId]||'';
+      const title=document.getElementById('zineTitle');
+      const paper=document.getElementById('zinePaper');
+      if(recipe?.name){title.textContent=recipe.name;document.title=`${recipe.name} Zine · PanCoon`;}
+      if(!path){
+        document.getElementById('zineFrame').className='zine-frame';
+        paper.innerHTML='<div class="empty"><h2>No zine attached yet.</h2><p>Edit this recipe in PanCoon and add the filename or assets/ path for its zine image.</p><a href="/#recipes">Back to Recipes</a></div>';
+        return;
+      }
+      const img=document.createElement('img');
+      img.src=path;
+      img.alt=recipe?.name?`${recipe.name} recipe zine`:'PanCoon recipe zine';
+      img.decoding='async';
+      img.addEventListener('error',()=>{paper.innerHTML='<div class="empty"><h2>Zine image not found.</h2><p>The recipe has a zine path saved, but that image could not be loaded. Check the asset filename in Edit Recipe.</p><a href="/#recipes">Back to Recipes</a></div>';},{once:true});
+      paper.replaceChildren(img);
+    })();
+  </script>
+</body>
+</html>
