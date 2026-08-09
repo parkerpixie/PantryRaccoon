@@ -50,7 +50,13 @@
       .zine-badge{display:inline-flex;align-items:center;width:max-content;margin:8px 0 0;padding:5px 8px;border-radius:999px;background:#f3e6cf;color:#76561f;font-size:10px;font-weight:900;letter-spacing:.02em}
       .recipe-card-actions [data-open-zine],.recipe-view-actions [data-open-zine]{border-color:#c8a66b;background:#fff9ed;color:#654b24}
       .recipe-zine-field small{font-weight:500;color:var(--muted);line-height:1.4}
-      @media(max-width:760px){.inventory-tools{align-items:stretch}.inventory-search{max-width:none}.inventory-filters{overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px}.inventory-filter{white-space:nowrap}}
+      .recipe-zine-preview{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr);gap:20px;align-items:center;margin:22px 0 26px;padding:16px;border:1px solid var(--line);border-radius:18px;background:#f7efe3}
+      .recipe-zine-preview button{display:block;width:100%;padding:0;border:0;background:transparent;cursor:pointer;border-radius:12px;overflow:hidden;box-shadow:0 10px 28px rgba(54,42,49,.16)}
+      .recipe-zine-preview img{display:block;width:100%;height:auto;max-height:330px;object-fit:cover;object-position:top;background:#201a1b}
+      .recipe-zine-preview h3{margin:0 0 7px;font-family:Georgia,serif;font-size:23px}
+      .recipe-zine-preview p{margin:0 0 12px;color:var(--muted);line-height:1.5}
+      .recipe-zine-preview .zine-preview-kicker{margin:0 0 5px;color:var(--teal);font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.12em}
+      @media(max-width:760px){.inventory-tools{align-items:stretch}.inventory-search{max-width:none}.inventory-filters{overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px}.inventory-filter{white-space:nowrap}.recipe-zine-preview{grid-template-columns:110px minmax(0,1fr);gap:13px;padding:12px}.recipe-zine-preview img{max-height:175px}.recipe-zine-preview h3{font-size:19px}.recipe-zine-preview p{font-size:12px}}
     `;
     document.head.appendChild(style);
   }
@@ -365,10 +371,35 @@
   }
 
   function decorateRecipeView(recipeId){
+    const view = document.getElementById('recipeView');
     const actions = document.querySelector('#recipeViewDialog .recipe-view-actions');
-    if (!actions) return;
+    if (!view || !actions) return;
+
     actions.querySelector('[data-open-zine]')?.remove();
-    if (!zinePathFor(recipeId)) return;
+    view.querySelector('.recipe-zine-preview')?.remove();
+
+    const zinePath = zinePathFor(recipeId);
+    if (!zinePath) return;
+
+    const state = readState();
+    const recipe = Array.isArray(state.recipes) ? state.recipes.find(item => item.id === recipeId) : null;
+    const preview = document.createElement('section');
+    preview.className = 'recipe-zine-preview';
+    preview.innerHTML = `
+      <button type="button" data-open-zine="${esc(recipeId)}" aria-label="Open ${esc(recipe?.name || 'recipe')} zine full size">
+        <img src="${esc(zinePath)}" alt="${esc(recipe?.name || 'Recipe')} zine preview">
+      </button>
+      <div>
+        <p class="zine-preview-kicker">PanCoon recipe zine</p>
+        <h3>See the recipe in full technicolor chaos ✨</h3>
+        <p>Tap the preview to open the full-page zine. The regular ingredients and instructions are still right below it.</p>
+        <button type="button" class="secondary" data-open-zine="${esc(recipeId)}">Open Recipe Zine</button>
+      </div>`;
+
+    const columns = view.querySelector('.recipe-columns');
+    if (columns) columns.before(preview);
+    else actions.before(preview);
+
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'secondary';
@@ -431,8 +462,8 @@
       if (edit) setTimeout(() => populateZineField(edit.dataset.editRecipe), 0);
       if (event.target.closest('#manualRecipeButton,#quickRecipeButton')) setTimeout(() => populateZineField(''), 0);
 
-      const view = event.target.closest('[data-view-recipe]');
-      if (view) setTimeout(() => decorateRecipeView(view.dataset.viewRecipe), 0);
+      const viewButton = event.target.closest('[data-view-recipe]');
+      if (viewButton) setTimeout(() => decorateRecipeView(viewButton.dataset.viewRecipe), 0);
 
       if (event.target.closest('[data-inventory-status],[data-remove-inventory]')){
         setTimeout(() => {
