@@ -151,6 +151,15 @@
     }
   }
 
+  function loadRepairHelper() {
+    if (document.querySelector('script[data-pancoon-recipe-repair]')) return;
+    const script = document.createElement('script');
+    script.src = '/recipe-card-repair.js?v=20260811-0612';
+    script.defer = true;
+    script.dataset.pancoonRecipeRepair = 'true';
+    document.head.appendChild(script);
+  }
+
   function setup() {
     const form = document.getElementById(FORM_ID);
     if (!form) return;
@@ -159,6 +168,7 @@
     // had a chance to read the URL. We validate manually so URL-only saves work.
     form.noValidate = true;
     addUrlHint(form);
+    loadRepairHelper();
 
     form.elements.name?.addEventListener('input', () => form.elements.name.setCustomValidity(''));
     form.elements.ingredients?.addEventListener('input', () => form.elements.ingredients.setCustomValidity(''));
