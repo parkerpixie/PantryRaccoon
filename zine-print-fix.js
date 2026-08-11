@@ -6,7 +6,7 @@
   const PORTER_RECIPE_ID = 'porter-sunshine-salad';
   const PORTER_ZINE = '/assets/Chicken Apple Sunshine Salad.png';
   const BLAKE_RECIPE_ID = 'blake-tacos';
-  const BLAKE_ZINE = '/assets/Blake Taco Tuesday The Jinx Zine.jpg';
+  const BLAKE_ZINE = '/assets/ChatGPT Image Aug 10, 2026, 07_40_15 PM.png';
 
   function readJson(key, fallback){
     try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
