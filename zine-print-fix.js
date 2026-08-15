@@ -4,7 +4,7 @@
   const STATE_KEY = 'pantry-raccoon:v1';
   const ZINES_KEY = 'pantry-raccoon:recipe-zines:v1';
   const LIBRARY_VERSION_KEY = 'pancoon:zine-library-version';
-  const LIBRARY_VERSION = '2026-08-10-9';
+  const LIBRARY_VERSION = '2026-08-15-10';
 
   const ZINE_LIBRARY = [
     {id:'porter-sunshine-salad', name:'Chicken Apple Sunshine Salad', asset:'/assets/Chicken Apple Sunshine Salad.png'},
@@ -22,6 +22,15 @@
     {id:'sheet-pan-gnocchi-sausage-kale', name:'Sheet Pan Gnocchi with Sausage and Kale', asset:'/assets/Sheet Pan Gnocchi with Sausage and Kale.jpg', awaitingSource:true}
   ];
 
+  const TRIP_ZINES = [
+    {keywords:['fishtown','feta'], asset:"/assets/Porter's Fishtown Feta Freakout.png"},
+    {keywords:['cherry blossom','cutlet'], asset:'/assets/Cherry Blossom Cutlet Quest.png'},
+    {keywords:['boardman river'], asset:'/assets/Boardman River Carintas Caper.png'},
+    {keywords:['sleeping bear','steak'], asset:'/assets/Sleeping Bear Dunes Steaks.png'},
+    {keywords:['beneath building 50'], asset:'/assets/Beneath Building 50_ Haunted Garden Feast.png'},
+    {keywords:['haunted','brat'], asset:'/assets/Beneath Building 50_ Haunted Garden Feast.png'}
+  ];
+
   const NEW_RECIPE_IDS = new Set(ZINE_LIBRARY.filter(item => item.awaitingSource).map(item => item.id));
 
   function readJson(key, fallback){
@@ -33,6 +42,17 @@
     localStorage.setItem(key, JSON.stringify(value));
   }
 
+  function normalized(value){
+    return String(value || '').toLowerCase().replace(/[’']/g,"'").replace(/[^a-z0-9]+/g,' ').trim();
+  }
+
+  function inferredZineAsset(recipe){
+    if (!recipe) return '';
+    const name = normalized(recipe.name);
+    const match = TRIP_ZINES.find(item => item.keywords.every(keyword => name.includes(normalized(keyword))));
+    return match?.asset || '';
+  }
+
   function ensureRecipeZines(){
     const zines = readJson(ZINES_KEY, {});
     let changed = false;
@@ -42,6 +62,16 @@
         changed = true;
       }
     }
+
+    const state = readJson(STATE_KEY, {});
+    for (const recipe of Array.isArray(state.recipes) ? state.recipes : []){
+      const inferred = inferredZineAsset(recipe);
+      if (inferred && zines[recipe.id] !== inferred){
+        zines[recipe.id] = inferred;
+        changed = true;
+      }
+    }
+
     if (changed) writeJson(ZINES_KEY, zines);
     return changed;
   }
@@ -128,14 +158,75 @@
     writeJson(STATE_KEY, state);
   }
 
+  function recipeFor(recipeId){
+    return readJson(STATE_KEY, {}).recipes?.find(item => item.id === recipeId) || null;
+  }
+
   function zineFor(recipeId){
-    return readJson(ZINES_KEY, {})[recipeId] || '';
+    const saved = readJson(ZINES_KEY, {})[recipeId] || '';
+    if (saved) return saved;
+    return inferredZineAsset(recipeFor(recipeId));
+  }
+
+  function esc(value){
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
+  }
+
+  function installZineViewStyles(){
+    if (document.getElementById('pancoon-zine-view-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'pancoon-zine-view-styles';
+    style.textContent = `
+      .zine-primary-view{max-width:min(920px,94vw)!important;padding:18px!important}
+      .zine-primary-head{padding:2px 42px 12px 2px}
+      .zine-primary-head h2{margin:.2rem 0 .3rem}
+      .zine-primary-head p{margin:0;color:var(--muted,#746f76)}
+      .zine-primary-art{display:flex;justify-content:center;background:#eee7df;border-radius:18px;padding:12px;overflow:auto}
+      .zine-primary-art img{display:block;width:auto;max-width:100%;max-height:76vh;object-fit:contain;border-radius:10px;box-shadow:0 10px 28px rgba(45,35,39,.18)}
+      .zine-primary-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+      @media(max-width:640px){
+        .zine-primary-view{width:96vw!important;padding:10px!important}
+        .zine-primary-head{padding:2px 38px 8px 2px}
+        .zine-primary-head h2{font-size:1.35rem}
+        .zine-primary-art{padding:6px;border-radius:12px}
+        .zine-primary-art img{max-height:none;width:100%;height:auto}
+        .zine-primary-actions{display:grid;grid-template-columns:1fr;width:100%}
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function openZineView(recipeId){
+    const src = zineFor(recipeId);
+    if (!src) return false;
+    const recipe = recipeFor(recipeId);
+    const view = document.getElementById('recipeView');
+    const dialog = document.getElementById('recipeViewDialog');
+    if (!view || !dialog) return false;
+
+    view.classList.add('zine-primary-view');
+    view.innerHTML = `
+      <button type="button" class="dialog-close" data-close-view aria-label="Close recipe">×</button>
+      <div class="zine-primary-head">
+        <p class="eyebrow">PanCoon recipe zine</p>
+        <h2>${esc(recipe?.name || 'Recipe')}</h2>
+        <p>Zine first. Tiny text wall only when there is no zine.</p>
+      </div>
+      <div class="zine-primary-art">
+        <img src="${esc(src)}" alt="${esc(recipe?.name || 'Recipe')} recipe zine">
+      </div>
+      <div class="zine-primary-actions">
+        <button type="button" class="primary" data-zine-print="${esc(recipeId)}">Print Zine</button>
+      </div>`;
+
+    if (!dialog.open) dialog.showModal();
+    return true;
   }
 
   function printZine(recipeId){
     const src = zineFor(recipeId);
     if (!src) return;
-    const recipe = readJson(STATE_KEY, {}).recipes?.find(item => item.id === recipeId);
+    const recipe = recipeFor(recipeId);
     const title = `${recipe?.name || 'PanCoon Recipe'} Zine`;
     const frame = document.createElement('iframe');
     frame.setAttribute('aria-hidden','true');
@@ -149,7 +240,7 @@
       const image = frame.contentDocument?.querySelector('img');
       if (image?.complete) run(); else if (image) image.onload = run; else run();
     };
-    frame.srcdoc = `<!doctype html><html><head><title>${title}</title><style>@page{size:letter portrait;margin:.2in}html,body{margin:0;width:100%;height:100%;background:#fff}body{display:flex;align-items:center;justify-content:center}img{display:block;max-width:100%;max-height:10.6in;width:auto;height:auto;object-fit:contain}</style></head><body><img src="${new URL(src, location.origin).href}" alt="${title}"></body></html>`;
+    frame.srcdoc = `<!doctype html><html><head><title>${esc(title)}</title><style>@page{size:letter portrait;margin:.2in}html,body{margin:0;width:100%;height:100%;background:#fff}body{display:flex;align-items:center;justify-content:center}img{display:block;max-width:100%;max-height:10.6in;width:auto;height:auto;object-fit:contain}</style></head><body><img src="${new URL(src, location.origin).href}" alt="${esc(title)}"></body></html>`;
   }
 
   function addPrintAction(recipeId){
@@ -257,6 +348,7 @@
   }
 
   function start(){
+    installZineViewStyles();
     const zinesChanged = ensureRecipeZines();
     ensureBlakeTacoRecipe();
     const cardsChanged = ensureRecipeCards();
@@ -275,7 +367,12 @@
 
     document.addEventListener('click', event => {
       const view = event.target.closest('[data-view-recipe]');
-      if (view && zineFor(view.dataset.viewRecipe)) setTimeout(() => addPrintAction(view.dataset.viewRecipe), 0);
+      if (view && zineFor(view.dataset.viewRecipe)){
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        openZineView(view.dataset.viewRecipe);
+        return;
+      }
 
       const printRecipe = event.target.closest('[data-print-recipe]');
       if (printRecipe && zineFor(printRecipe.dataset.printRecipe)){
