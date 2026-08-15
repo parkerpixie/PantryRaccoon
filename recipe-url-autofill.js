@@ -183,3 +183,15 @@
     setup();
   }
 })();
+
+// One-time loader for the finalized Aug 16–20 family meal week. The seed file
+// guards itself with a localStorage flag, so future visits do not overwrite
+// any changes Parker makes after the week is installed.
+(() => {
+  if (document.querySelector('script[data-pancoon-aug16-week]')) return;
+  const script = document.createElement('script');
+  script.src = '/weekly-plan-2026-08-16.js?v=20260815-1';
+  script.defer = true;
+  script.dataset.pancoonAug16Week = 'true';
+  document.head.appendChild(script);
+})();
