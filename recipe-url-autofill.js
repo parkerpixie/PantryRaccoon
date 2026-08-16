@@ -195,3 +195,15 @@
   script.dataset.pancoonAug16Week = 'true';
   document.head.appendChild(script);
 })();
+
+// Department-based store mode for the Aug 16 grocery run. This is separate
+// from recipe-derived grocery suggestions so Parker and Blake can work from
+// the exact curated list they agreed on for today's trip.
+(() => {
+  if (document.querySelector('script[data-pancoon-shopping-trip]')) return;
+  const script = document.createElement('script');
+  script.src = '/shopping-list-2026-08-16.js?v=20260816-1';
+  script.defer = true;
+  script.dataset.pancoonShoppingTrip = 'true';
+  document.head.appendChild(script);
+})();
