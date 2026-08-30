@@ -207,3 +207,15 @@
   script.dataset.pancoonShoppingTrip = 'true';
   document.head.appendChild(script);
 })();
+
+// Automation-ready inventory contract. This intentionally stays separate from
+// PanCoon's legacy local state so the richer schema can evolve safely before a
+// future Supabase/n8n integration becomes the source of truth.
+(() => {
+  if (document.querySelector('script[data-pancoon-inventory-contract]')) return;
+  const script = document.createElement('script');
+  script.src = '/inventory-contract-v2.js?v=20260830-1';
+  script.defer = true;
+  script.dataset.pancoonInventoryContract = 'true';
+  document.head.appendChild(script);
+})();
