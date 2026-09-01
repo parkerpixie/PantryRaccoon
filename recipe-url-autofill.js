@@ -219,3 +219,17 @@
   script.dataset.pancoonInventoryContract = 'true';
   document.head.appendChild(script);
 })();
+
+// Receipt ledger + inventory proposal contract for Eat Me First. The first
+// Hy-Vee order is stored as a real Phase 0 fixture, but proposals are never
+// written into household inventory automatically. Human review stays between
+// receipt parsing and inventory mutation so substitutions and printed dates
+// cannot silently become bad data.
+(() => {
+  if (document.querySelector('script[data-pancoon-receipt-contract]')) return;
+  const script = document.createElement('script');
+  script.src = '/receipt-contract-v1.js?v=20260831-1';
+  script.defer = true;
+  script.dataset.pancoonReceiptContract = 'true';
+  document.head.appendChild(script);
+})();
