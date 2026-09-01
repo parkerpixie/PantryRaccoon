@@ -1,0 +1,61 @@
+{
+  "schema": "pancoon.receipt",
+  "schemaVersion": 1,
+  "id": "hyvee:44233905",
+  "source": {
+    "store": "Hy-Vee",
+    "storeLocation": "2920 Fitchrona Road, Fitchburg, WI 53719",
+    "sourceType": "hyvee-online-purchase-details",
+    "sourceFile": "receipt_hyvee_2026-08-29_44233905.pdf",
+    "orderNumber": "44233905"
+  },
+  "purchaseDate": "2026-08-29",
+  "placedAt": "2026-08-29T09:18:00-05:00",
+  "totals": {
+    "subtotal": 103.76,
+    "taxAndDeposits": 0.62,
+    "deliveryFee": 0.0,
+    "tip": 10.0,
+    "orderTotal": 114.38,
+    "savings": 20.48
+  },
+  "importPolicy": {
+    "autoWriteInventory": false,
+    "reason": "Phase 0 stores the receipt and creates proposals only. A human approves inventory writes in a later phase.",
+    "freshnessDatesAreEstimates": false,
+    "printedDatesRequiredWhenFlagged": true
+  },
+  "items": [
+    {"id":"hyvee-44233905-001","page":1,"department":"Bakery","rawName":"Hoagie Buns 4Ct","normalizedName":"Hoagie buns","price":2.99,"quantityText":"4 ct","quantityValue":1,"unit":"package","inventoryKind":"pantry","inventoryCategory":"Other","foodGroup":"bread","freshnessStrategy":"estimate","needsDatePrompt":false,"watch":true},
+    {"id":"hyvee-44233905-002","page":1,"department":"Beverages","rawName":"La Croix Lemon Sparkling Wtr","normalizedName":"La Croix lemon sparkling water","price":5.49,"quantityText":"","quantityValue":1,"unit":"package","inventoryKind":"pantry","inventoryCategory":"Staples","foodGroup":"beverage","freshnessStrategy":"none","needsDatePrompt":false,"watch":false},
+    {"id":"hyvee-44233905-003","page":1,"department":"Beverages","rawName":"Coke Classic 12Pk Cans","normalizedName":"Coca-Cola Classic","price":9.29,"quantityText":"12 pack","quantityValue":1,"unit":"package","inventoryKind":"pantry","inventoryCategory":"Staples","foodGroup":"beverage","freshnessStrategy":"none","needsDatePrompt":false,"watch":false},
+    {"id":"hyvee-44233905-004","page":1,"department":"Beverages","rawName":"Coca Cola Favorita Single Btl","normalizedName":"Coca-Cola Favorita","price":2.49,"quantityText":"single bottle","quantityValue":1,"unit":"bottle","inventoryKind":"pantry","inventoryCategory":"Staples","foodGroup":"beverage","freshnessStrategy":"none","needsDatePrompt":false,"watch":false},
+    {"id":"hyvee-44233905-005","page":1,"department":"Fresh","rawName":"Nathans Jumbo Beef Franks","normalizedName":"Nathan's jumbo beef franks","price":5.97,"quantityText":"","quantityValue":1,"unit":"package","inventoryKind":"fridge","inventoryCategory":"Deli","foodGroup":"processed_meat","freshnessStrategy":"printed-date","needsDatePrompt":true,"watch":true},
+    {"id":"hyvee-44233905-006","page":1,"department":"Fresh","rawName":"Sweet Corn","normalizedName":"Sweet corn","price":2.67,"quantityText":"4 ears","quantityValue":4,"unit":"item","inventoryKind":"fridge","inventoryCategory":"Produce","foodGroup":"produce","freshnessStrategy":"estimate","needsDatePrompt":false,"watch":true},
+    {"id":"hyvee-44233905-007","page":1,"department":"Fresh","rawName":"Organicgirl Baby Spring Mix","normalizedName":"Baby spring mix","price":3.99,"quantityText":"","quantityValue":1,"unit":"container","inventoryKind":"fridge","inventoryCategory":"Produce","foodGroup":"leafy_greens","freshnessStrategy":"estimate","needsDatePrompt":false,"watch":true},
+    {"id":"hyvee-44233905-008","page":1,"department":"Fresh","rawName":"Granny Smith Apples","normalizedName":"Granny Smith apples","price":0.96,"quantityText":"","quantityValue":null,"unit":"","inventoryKind":"fridge","inventoryCategory":"Produce","foodGroup":"produce","freshnessStrategy":"estimate","needsDatePrompt":false,"watch":true},
+    {"id":"hyvee-44233905-009","page":1,"department":"Fresh","rawName":"English Cucumber","normalizedName":"English cucumber","price":1.67,"quantityText":"","quantityValue":1,"unit":"item","inventoryKind":"fridge","inventoryCategory":"Produce","foodGroup":"produce","freshnessStrategy":"estimate","needsDatePrompt":false,"watch":true},
+    {"id":"hyvee-44233905-010","page":1,"department":"Fresh","rawName":"Grimmway Farms Shred Carrots","normalizedName":"Shredded carrots","price":1.88,"quantityText":"","quantityValue":1,"unit":"bag","inventoryKind":"fridge","inventoryCategory":"Produce","foodGroup":"produce","freshnessStrategy":"estimate","needsDatePrompt":false,"watch":true},
+    {"id":"hyvee-44233905-011","page":1,"department":"Fresh","rawName":"Bagged Yellow Onions","normalizedName":"Yellow onions","price":3.99,"quantityText":"","quantityValue":1,"unit":"bag","inventoryKind":"pantry","inventoryCategory":"Staples","foodGroup":"produce","freshnessStrategy":"estimate","needsDatePrompt":false,"watch":true},
+    {"id":"hyvee-44233905-012","page":1,"department":"Fresh","rawName":"Poblano Peppers","normalizedName":"Poblano peppers","price":1.35,"quantityText":"","quantityValue":null,"unit":"","inventoryKind":"fridge","inventoryCategory":"Produce","foodGroup":"produce","freshnessStrategy":"estimate","needsDatePrompt":false,"watch":true},
+    {"id":"hyvee-44233905-013","page":2,"department":"Fresh","rawName":"Green Bell Peppers","normalizedName":"Green bell peppers","price":0.99,"quantityText":"","quantityValue":null,"unit":"","inventoryKind":"fridge","inventoryCategory":"Produce","foodGroup":"produce","freshnessStrategy":"estimate","needsDatePrompt":false,"watch":true},
+    {"id":"hyvee-44233905-014","page":2,"department":"Fresh","rawName":"Red Bell Pepper","normalizedName":"Red bell pepper","price":0.99,"quantityText":"","quantityValue":1,"unit":"item","inventoryKind":"fridge","inventoryCategory":"Produce","foodGroup":"produce","freshnessStrategy":"estimate","needsDatePrompt":false,"watch":true},
+    {"id":"hyvee-44233905-015","page":2,"department":"Fresh","rawName":"Limes","normalizedName":"Limes","price":2.67,"quantityText":"3","quantityValue":3,"unit":"item","inventoryKind":"fridge","inventoryCategory":"Produce","foodGroup":"produce","freshnessStrategy":"estimate","needsDatePrompt":false,"watch":true},
+    {"id":"hyvee-44233905-016","page":2,"department":"Fresh","rawName":"Broccoli Crowns","normalizedName":"Broccoli crowns","price":2.83,"quantityText":"","quantityValue":null,"unit":"","inventoryKind":"fridge","inventoryCategory":"Produce","foodGroup":"produce","freshnessStrategy":"estimate","needsDatePrompt":false,"watch":true},
+    {"id":"hyvee-44233905-017","page":2,"department":"Fresh","rawName":"Just Bare B/S Ckn Brst","normalizedName":"Boneless skinless chicken breast","price":2.0,"quantityText":"","quantityValue":1,"unit":"package","inventoryKind":"fridge","inventoryCategory":"Other","foodGroup":"raw_poultry","freshnessStrategy":"printed-date","needsDatePrompt":true,"watch":true,"reviewRequired":true,"receiptNote":"Receipt marks this priced line as involving substituted item(s); exact replacement was not reliably represented in the PDF text."},
+    {"id":"hyvee-44233905-018","page":2,"department":"Fresh","rawName":"Just Bare Ckn Tenderloins","normalizedName":"Chicken tenderloins","price":2.0,"quantityText":"","quantityValue":1,"unit":"package","inventoryKind":"fridge","inventoryCategory":"Other","foodGroup":"raw_poultry","freshnessStrategy":"printed-date","needsDatePrompt":true,"watch":true,"reviewRequired":true,"receiptNote":"Receipt marks this priced line as involving substituted item(s); exact replacement was not reliably represented in the PDF text."},
+    {"id":"hyvee-44233905-019","page":2,"department":"Fresh","rawName":"DiLusso Choice Roast Beef Med","normalizedName":"Deli roast beef","price":14.13,"quantityText":"1.01 lb","quantityValue":1.01,"unit":"lb","inventoryKind":"fridge","inventoryCategory":"Deli","foodGroup":"deli_meat","freshnessStrategy":"printed-date","needsDatePrompt":true,"watch":true},
+    {"id":"hyvee-44233905-020","page":2,"department":"Fresh","rawName":"DiLusso Wisconsin Provolone","normalizedName":"Provolone cheese","price":10.19,"quantityText":"1.02 lb","quantityValue":1.02,"unit":"lb","inventoryKind":"fridge","inventoryCategory":"Deli","foodGroup":"cheese","freshnessStrategy":"printed-date","needsDatePrompt":true,"watch":true},
+    {"id":"hyvee-44233905-021","page":2,"department":"Fresh","rawName":"BelGioioso Blue Chs Crmbl Cup","normalizedName":"Blue cheese crumbles","price":2.99,"quantityText":"","quantityValue":1,"unit":"container","inventoryKind":"fridge","inventoryCategory":"Dairy","foodGroup":"cheese","freshnessStrategy":"printed-date","needsDatePrompt":true,"watch":true},
+    {"id":"hyvee-44233905-022","page":2,"department":"Fresh","rawName":"Bud Romaine Heart","normalizedName":"Romaine hearts","price":3.99,"quantityText":"","quantityValue":1,"unit":"package","inventoryKind":"fridge","inventoryCategory":"Produce","foodGroup":"leafy_greens","freshnessStrategy":"estimate","needsDatePrompt":false,"watch":true},
+    {"id":"hyvee-44233905-023","page":2,"department":"Fresh","rawName":"DiLusso Hard Salami","normalizedName":"Deli hard salami","price":11.42,"quantityText":"1.04 lb","quantityValue":1.04,"unit":"lb","inventoryKind":"fridge","inventoryCategory":"Deli","foodGroup":"deli_meat","freshnessStrategy":"printed-date","needsDatePrompt":true,"watch":true},
+    {"id":"hyvee-44233905-024","page":2,"department":"Fresh","rawName":"Sassy Cow 1% Milk","normalizedName":"Sassy Cow 1% milk","price":3.29,"quantityText":"","quantityValue":1,"unit":"carton","inventoryKind":"fridge","inventoryCategory":"Dairy","foodGroup":"milk","freshnessStrategy":"printed-date","needsDatePrompt":true,"watch":true,"reviewRequired":true,"substitutionCandidates":["Sassy Cow Chocolate 1% Milk"],"receiptNote":"The PDF shows Sassy Cow Chocolate 1% Milk beneath this priced line as a substituted item without a separate price. Confirm which milk actually arrived."},
+    {"id":"hyvee-44233905-025","page":2,"department":"Frozen","rawName":"P Farm Puff Cherry Turnovers","normalizedName":"Cherry turnovers","price":4.99,"quantityText":"","quantityValue":1,"unit":"package","inventoryKind":"freezer","inventoryCategory":"Treats","foodGroup":"frozen_food","freshnessStrategy":"none","needsDatePrompt":false,"watch":false},
+    {"id":"hyvee-44233905-026","page":2,"department":"Frozen","rawName":"Sara Lee Cinn Caramel Crunch","normalizedName":"Sara Lee cinnamon caramel crunch","price":4.99,"quantityText":"","quantityValue":1,"unit":"package","inventoryKind":"freezer","inventoryCategory":"Treats","foodGroup":"frozen_food","freshnessStrategy":"none","needsDatePrompt":false,"watch":false},
+    {"id":"hyvee-44233905-027","page":3,"department":"Pantry","rawName":"Ball Park White Hot Dog Buns","normalizedName":"White hot dog buns","price":3.79,"quantityText":"","quantityValue":1,"unit":"package","inventoryKind":"pantry","inventoryCategory":"Other","foodGroup":"bread","freshnessStrategy":"estimate","needsDatePrompt":false,"watch":true},
+    {"id":"hyvee-44233905-028","page":3,"department":"Pantry","rawName":"Campbells French Onion Soup","normalizedName":"Campbell's French onion soup","price":1.96,"quantityText":"","quantityValue":1,"unit":"can","inventoryKind":"pantry","inventoryCategory":"Staples","foodGroup":"shelf_stable","freshnessStrategy":"none","needsDatePrompt":false,"watch":false},
+    {"id":"hyvee-44233905-029","page":3,"department":"Pantry","rawName":"StarKist TC Lemon Pepper","normalizedName":"StarKist lemon pepper tuna","price":2.56,"quantityText":"2","quantityValue":2,"unit":"package","inventoryKind":"pantry","inventoryCategory":"Staples","foodGroup":"shelf_stable","freshnessStrategy":"none","needsDatePrompt":false,"watch":false},
+    {"id":"hyvee-44233905-030","page":3,"department":"Pantry","rawName":"StarKist TC Herb & Garlic","normalizedName":"StarKist herb & garlic tuna","price":2.56,"quantityText":"2","quantityValue":2,"unit":"package","inventoryKind":"pantry","inventoryCategory":"Staples","foodGroup":"shelf_stable","freshnessStrategy":"none","needsDatePrompt":false,"watch":false},
+    {"id":"hyvee-44233905-031","page":3,"department":"Pantry","rawName":"BEACON BRD SOURDOUGH WP","normalizedName":"Sourdough bread","price":3.19,"quantityText":"","quantityValue":1,"unit":"package","inventoryKind":"pantry","inventoryCategory":"Other","foodGroup":"bread","freshnessStrategy":"estimate","needsDatePrompt":false,"watch":true}
+  ]
+}
