@@ -113,11 +113,13 @@
       '<button class="secondary" type="button" id="pancoonRestartSetup">Walk through setup again</button></div>' +
       '</form></article>' +
       '<article class="card pancoon-settings-card"><h3>Keep a copy of your kitchen</h3>' +
-      '<p>Your recipes, zines, meal plans, and inventory are currently saved in this browser. Export a backup before clearing browser data or moving devices.</p>' +
-      '<div class="button-row"><button class="secondary" id="pancoonExportBackup" type="button">Download kitchen backup</button>' +
-      '<button class="secondary" id="pancoonImportBackup" type="button">Restore a backup</button></div>' +
+      '<p>Your recipes, meal plans, and inventory are currently stored in this browser. A JSON backup saves your records and zine references, but <strong>not the artwork image files</strong>.</p>' +
+      '<div class="button-row"><button class="secondary" id="pancoonExportBackup" type="button">Download kitchen JSON</button>' +
+      '<button class="secondary" id="pancoonArtArchive" type="button">Download kitchen + artwork ZIP</button>' +
+      '<button class="secondary" id="pancoonImportBackup" type="button">Restore JSON backup</button></div>' +
       '<input id="pancoonBackupFile" type="file" accept=".json,application/json" hidden>' +
-      '<p class="hint">A backup is not cloud sync. Restore only files you trust. You can also use this to move your kitchen to another device.</p></article>';
+      '<p id="pancoonArtworkArchiveStatus" class="hint" role="status">The ZIP includes available artwork and reports missing references. Keep both backups safe before moving images.</p>' +
+      '<p class="hint">ZIP artwork is for safekeeping; the current restore control accepts JSON only. Neither file is automatic cloud sync.</p></article>';
   }
 
   function readSelected(root, selector) {

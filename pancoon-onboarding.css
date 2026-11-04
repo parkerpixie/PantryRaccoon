@@ -28,3 +28,10 @@
 .pancoon-wizard-skip{border:0;background:transparent;color:var(--muted);padding:8px;text-decoration:underline;font-size:12px;font-weight:600}
 @media(max-width:650px){.pancoon-setting-pair{grid-template-columns:1fr}.pancoon-day-row{grid-template-columns:1fr;gap:8px}.pancoon-settings-card fieldset{padding:14px}.pancoon-meal-options{gap:10px 12px}#pancoonSetupDialog{max-height:95vh}.pancoon-wizard-actions button{min-width:0;flex:1}}
 @media(prefers-reduced-motion:reduce){.pancoon-wizard-progress span{transition:none}}
+
+.pancoon-cloud-login{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin:14px 0}
+.pancoon-cloud-login label{display:grid;gap:6px;flex:1 1 200px;font-weight:750;font-size:13px}
+.pancoon-cloud-login button{flex:0 0 auto}
+#pancoonCloudCard .button-row{margin-top:18px}
+#pancoonArtworkArchiveStatus{font-weight:650;max-width:700px}
+@media(max-width:650px){.pancoon-cloud-login{display:grid}.pancoon-cloud-login button{width:100%}}

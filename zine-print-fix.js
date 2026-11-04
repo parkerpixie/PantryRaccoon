@@ -58,9 +58,18 @@
     return true;
   }
 
-  function printZine(recipeId){
-    const src = zineFor(recipeId);
-    if (!src) return;
+  async function printZine(recipeId){
+    const original = zineFor(recipeId);
+    if (!original) return;
+    let src = original;
+    if (original.startsWith('pancoon-private://')){
+      try {
+        src = await window.PanCoonPrivateMedia.resolve(original);
+      } catch (_) {
+        alert('Sign in to your private PanCoon kitchen before printing this artwork.');
+        return;
+      }
+    }
     const recipe = recipeFor(recipeId);
     const title = `${recipe?.name || 'PanCoon Recipe'} Zine`;
     const frame = document.createElement('iframe');
@@ -75,7 +84,7 @@
       const image = frame.contentDocument?.querySelector('img');
       if (image?.complete) run(); else if (image) image.onload = run; else run();
     };
-    frame.srcdoc = `<!doctype html><html><head><title>${esc(title)}</title><style>@page{size:letter portrait;margin:.2in}html,body{margin:0;width:100%;height:100%;background:#fff}body{display:flex;align-items:center;justify-content:center}img{display:block;max-width:100%;max-height:10.6in;width:auto;height:auto;object-fit:contain}</style></head><body><img src="${new URL(src, location.origin).href}" alt="${esc(title)}"></body></html>`;
+    frame.srcdoc = `<!doctype html><html><head><title>${esc(title)}</title><style>@page{size:letter portrait;margin:.2in}html,body{margin:0;width:100%;height:100%;background:#fff}body{display:flex;align-items:center;justify-content:center}img{display:block;max-width:100%;max-height:10.6in;width:auto;height:auto;object-fit:contain}</style></head><body><img src="${esc(/^(blob:|data:)/.test(src) ? src : new URL(src, location.origin).href)}" alt="${esc(title)}"></body></html>`;
   }
 
   function reopenPlanEditor(){
