@@ -302,20 +302,12 @@
     return `/assets/${text}`;
   }
 
-  function ensureDefaultZines(){
-    const zines = readZines();
-    if (!zines['chicken-shawarma-sheet-pan']){
-      zines['chicken-shawarma-sheet-pan'] = '/assets/Chicken Shawrma Sheet Pan Dinner.png';
-      writeJson(ZINES_KEY, zines);
-    }
-  }
-
   function ensureZineField(){
     const form = document.getElementById('recipeForm');
     if (!form || form.elements.zineAsset) return;
     const label = document.createElement('label');
     label.className = 'recipe-zine-field';
-    label.innerHTML = `Recipe Zine asset<input name="zineAsset" placeholder="assets/My Recipe Zine.png"><small>Upload the zine image to the repo's assets folder, then paste its filename or assets/ path here.</small>`;
+    label.innerHTML = `Recipe Zine asset<input name="zineAsset" placeholder="assets/My Recipe Zine.png"><small>Optional illustration: provide a previously saved image URL or asset path.</small>`;
     const notesLabel = form.elements.notes?.closest('label');
     if (notesLabel) form.insertBefore(label, notesLabel);
     else form.appendChild(label);
@@ -415,7 +407,6 @@
 
   function start(){
     injectStyles();
-    ensureDefaultZines();
     ensureZineField();
     updateTonight();
     scheduleFiveAmRefresh();
