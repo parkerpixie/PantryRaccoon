@@ -7,26 +7,6 @@
   const LIBRARY_VERSION_KEY = 'pancoon:zine-library-version';
   const LIBRARY_VERSION = '2026-08-29-recovery-1';
 
-  const ZINE_LIBRARY = [
-    {id:'porter-sunshine-salad', name:'Chicken Apple Sunshine Salad', asset:'/assets/Chicken Apple Sunshine Salad.png'},
-    {id:'blake-tacos', name:"Blake's Taco Tuesday", asset:'/assets/ChatGPT Image Aug 10, 2026, 07_40_15 PM.png'},
-    {id:'chicken-shawarma-sheet-pan', name:'Chicken Shawarma Sheet Pan Dinner', asset:'/assets/Chicken Shawrma Sheet Pan Dinner.png'},
-    {id:'broccoli-chicken-stir-fry', name:'Broccoli and Chicken Stir Fry', asset:'/assets/Broccoli and Chicken Stir Fry.jpg', awaitingSource:true},
-    {id:'celestial-french-dip', name:'Celestial French Dip', asset:'/assets/Celestial Frech Dip.jpg', awaitingSource:true},
-    {id:'creamy-one-pan-chicken-potatoes', name:'Creamy One Pan Chicken and Potatoes', asset:'/assets/Creamy One Pan Chicken and Potatoes.jpg', awaitingSource:true},
-    {id:'egg-roll-in-a-bowl', name:'Egg Roll in a Bowl', asset:'/assets/Egg Roll in a Bowl.jpg', awaitingSource:true},
-    {id:'greek-chicken-rice-bowls', name:'Greek Chicken Rice Bowls', asset:'/assets/Greek Chicken Rice Bowls.jpg', awaitingSource:true},
-    {id:'grilled-pizza', name:'Grilled Pizza', asset:'/assets/Grilled Pizza.jpg', awaitingSource:true},
-    {id:'peachy-grilled-pizza', name:'Peachy Grilled Pizza', asset:'/assets/Peachy Grilled Pizza.jpg', awaitingSource:true},
-    {id:'roasted-turkey-breast', name:'Roasted Turkey Breast', asset:'/assets/Roasted Turkey Breast.jpg', awaitingSource:true},
-    {id:'sheet-pan-gnocchi-sausage-kale', name:'Sheet Pan Gnocchi with Sausage and Kale', asset:'/assets/Sheet Pan Gnocchi with Sausage and Kale.jpg', awaitingSource:true},
-    {id:'fishtown-feta-freakout', name:"Porter's Fishtown Feta Freakout", asset:"/assets/Porter's Fishtown Feta Freakout.png", awaitingSource:true},
-    {id:'cherry-blossom-cutlet-quest', name:'Cherry Blossom Cutlet Quest', asset:'/assets/Cherry Blossom Cutlet Quest.png', awaitingSource:true},
-    {id:'boardman-river-carnitas-caper', name:'Boardman River Carnitas Caper', asset:'/assets/Boardman River Carintas Caper.png', awaitingSource:true},
-    {id:'sleeping-bear-dunes-steaks', name:'Sleeping Bear Dunes Steaks', asset:'/assets/Sleeping Bear Dunes Steaks.png', awaitingSource:true},
-    {id:'beneath-building-50-haunted-garden-feast', name:'Beneath Building 50: Haunted Garden Feast', asset:'/assets/Beneath Building 50_ Haunted Garden Feast.png', awaitingSource:true}
-  ];
-
   let openPlanDay = '';
 
   function readJson(key, fallback){
@@ -35,126 +15,6 @@
   }
 
   function writeJson(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
-
-  function normalized(value){
-    return String(value || '').toLowerCase().replace(/[’']/g,"'").replace(/[^a-z0-9]+/g,' ').trim();
-  }
-
-  function esc(value){
-    return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
-  }
-
-  function recipeKey(recipe){
-    if (recipe?.url) return `url:${normalized(recipe.url)}`;
-    if (recipe?.id) return `id:${recipe.id}`;
-    return `name:${normalized(recipe?.name)}`;
-  }
-
-  function mergeRecoveredRecipes(){
-    const state = readJson(STATE_KEY, {});
-    const backup = readJson(BACKUP_KEY, {});
-    state.recipes = Array.isArray(state.recipes) ? state.recipes : [];
-    const backupRecipes = Array.isArray(backup.recipes) ? backup.recipes : [];
-    const seen = new Set(state.recipes.map(recipeKey));
-    let changed = false;
-
-    for (const recipe of backupRecipes){
-      if (!recipe?.name) continue;
-      const keys = [recipeKey(recipe), `name:${normalized(recipe.name)}`];
-      if (keys.some(key => seen.has(key))) continue;
-      state.recipes.push({...recipe, recoveredAt:new Date().toISOString()});
-      keys.forEach(key => seen.add(key));
-      changed = true;
-    }
-
-    if (changed) writeJson(STATE_KEY, state);
-    return changed;
-  }
-
-  function ensureRecipeZines(){
-    const zines = readJson(ZINES_KEY, {});
-    let changed = false;
-    for (const item of ZINE_LIBRARY){
-      if (zines[item.id] !== item.asset){
-        zines[item.id] = item.asset;
-        changed = true;
-      }
-    }
-    if (changed) writeJson(ZINES_KEY, zines);
-    return changed;
-  }
-
-  function titleFromAsset(asset){
-    const raw = decodeURIComponent(String(asset || '').split('/').pop() || '')
-      .replace(/\.(png|jpe?g|webp)$/i,'')
-      .replace(/[_-]+/g,' ')
-      .trim();
-    return raw || 'PanCoon Recipe Zine';
-  }
-
-  function ensureRecipeCards(){
-    const state = readJson(STATE_KEY, {});
-    const zines = readJson(ZINES_KEY, {});
-    state.recipes = Array.isArray(state.recipes) ? state.recipes : [];
-    let changed = false;
-
-    for (const item of ZINE_LIBRARY){
-      let recipe = state.recipes.find(entry => entry.id === item.id)
-        || state.recipes.find(entry => normalized(entry.name) === normalized(item.name));
-
-      if (!recipe){
-        recipe = {
-          id:item.id,
-          name:item.name,
-          createdBy:'',
-          category:'Dinner',
-          servings:'',
-          prepMinutes:0,
-          cookMinutes:0,
-          totalMinutes:0,
-          url:'',
-          sourceImageUrl:item.asset,
-          ingredients:[],
-          instructions:[],
-          notes:item.awaitingSource ? 'Recipe zine saved. Add or import the original recipe details when available.' : '',
-          awaitingSource:!!item.awaitingSource,
-          createdAt:new Date().toISOString(),
-          updatedAt:new Date().toISOString()
-        };
-        state.recipes.push(recipe);
-        changed = true;
-      } else if (!recipe.sourceImageUrl){
-        recipe.sourceImageUrl = item.asset;
-        changed = true;
-      }
-    }
-
-    for (const [id, asset] of Object.entries(zines)){
-      if (state.recipes.some(recipe => recipe.id === id)) continue;
-      state.recipes.push({
-        id,
-        name:titleFromAsset(asset),
-        createdBy:'',
-        category:'Dinner',
-        servings:'',
-        prepMinutes:0,
-        cookMinutes:0,
-        totalMinutes:0,
-        url:'',
-        sourceImageUrl:asset,
-        ingredients:[],
-        instructions:[],
-        notes:'Recovered from an existing PanCoon recipe zine.',
-        awaitingSource:true,
-        createdAt:new Date().toISOString(),
-        updatedAt:new Date().toISOString()
-      });
-      changed = true;
-    }
-
-    if (changed) writeJson(STATE_KEY, state);
-    return changed;
-  }
 
   function zineFor(recipeId){ return readJson(ZINES_KEY, {})[recipeId] || ''; }
   function recipeFor(recipeId){ return readJson(STATE_KEY, {}).recipes?.find(item => item.id === recipeId) || null; }
@@ -241,22 +101,6 @@
 
   function start(){
     installStyles();
-    const recovered = mergeRecoveredRecipes();
-    const zinesChanged = ensureRecipeZines();
-    const cardsChanged = ensureRecipeCards();
-
-    if ((recovered || zinesChanged || cardsChanged) && sessionStorage.getItem(LIBRARY_VERSION_KEY) !== LIBRARY_VERSION){
-      sessionStorage.setItem(LIBRARY_VERSION_KEY, LIBRARY_VERSION);
-      sessionStorage.setItem('pancoon:show-recipes-after-reload','1');
-      location.reload();
-      return;
-    }
-
-    if (sessionStorage.getItem('pancoon:show-recipes-after-reload') === '1'){
-      sessionStorage.removeItem('pancoon:show-recipes-after-reload');
-      location.hash = 'recipes';
-    }
-
     observePlanRenders();
     document.addEventListener('change', keepPlanEditorOpen, false);
 

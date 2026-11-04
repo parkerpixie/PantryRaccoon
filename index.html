@@ -13,6 +13,7 @@
   <link rel="icon" href="/assets/PanCoon%20App%20Icon.png" type="image/png">
   <link rel="apple-touch-icon" href="/assets/PanCoon%20App%20Icon.png">
   <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/pancoon-onboarding.css">
   <style>
     .tonight-card{position:relative;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(210px,.72fr);padding:0;overflow:hidden;min-height:270px;background:#5b3b58;border:1px solid #4a3048;border-radius:28px;box-shadow:0 18px 50px rgba(54,42,49,.12)}
     .tonight-details{position:relative;z-index:2;align-self:stretch;display:flex;flex-direction:column;justify-content:center;margin:11px 0 11px 11px;padding:27px 34px 27px 38px;background:#fffaf3;border:1px solid #eadbd0;border-radius:25px 8px 8px 25px;box-shadow:6px 0 22px rgba(54,42,49,.08)}
@@ -53,13 +54,14 @@
         <button data-route="fridge">Fridge</button>
         <button data-route="freezer">Freezer</button>
         <button data-route="grocery">Grocery</button>
+        <button data-route="settings">Settings</button>
       </nav>
       <div class="sidebar-note"><strong>Local-first on purpose</strong><p>Kitchen data stays on this device while the core workflow proves itself.</p></div>
     </aside>
 
     <main>
       <header class="topbar">
-        <div><p class="eyebrow">Kitchen command center</p><h1 id="pageTitle">This week</h1><p id="pageSubtitle">Friday through Friday. Weekend lunches included.</p></div>
+        <div><p class="eyebrow">Kitchen command center</p><h1 id="pageTitle">This week</h1><p id="pageSubtitle">Plan meals, check your kitchen, and buy only what you need.</p></div>
         <button class="primary" id="quickRecipeButton">+ Add recipe</button>
       </header>
 
@@ -75,11 +77,8 @@
             <img src="/assets/HERO%20Raccoon%20in%20Kitchen.png" alt="" decoding="async">
           </div>
         </div>
-        <div class="week-heading"><div><p class="eyebrow">Meal plan</p><h2 id="weekRange">This Friday → next Friday</h2></div><span class="pill">8 days, intentionally</span></div>
+        <div class="week-heading"><div><p class="eyebrow">Meal plan</p><h2 id="weekRange">This week</h2></div><span class="pill">7-day meal plan</span></div>
         <div id="mealPlan" class="meal-grid"></div>
-        <div class="plan-kitchen-footer">
-          <img src="/assets/Talbot%20kitchen%20with%20Luna%20and%20Ozzy.png" alt="Illustrated Talbot kitchen with Luna and Ozzy" loading="lazy" decoding="async">
-        </div>
       </section>
 
       <section class="page" data-page="recipes">
@@ -141,7 +140,7 @@
             <input class="inventory-note-input" name="notes" autocomplete="off" placeholder="Expiration date / notes">
             <button class="primary" type="submit">Add freezer item</button>
           </form>
-          <p class="hint">Use this for dates or anything Future You needs to know: “best by Sep 2,” “opened,” “Porter’s,” etc.</p>
+          <p class="hint">Use this for dates or anything Future You needs to know: “best by Sep 2,” “opened,” “use this first,” etc.</p>
         </article>
         <div id="freezerList"></div>
       </section>
@@ -156,6 +155,7 @@
         <div id="groceryList"></div>
         <div id="groceryCompleted" class="completed-area"></div>
       </section>
+      <section class="page" data-page="settings" id="settingsPage"></section>
     </main>
   </div>
 
@@ -164,7 +164,7 @@
       <button type="button" class="dialog-close" data-close-dialog>×</button>
       <p class="eyebrow">Recipe</p><h2 id="recipeDialogTitle">Add family recipe</h2>
       <input type="hidden" name="id">
-      <div class="form-two"><label>Name<input name="name" required></label><label>Created by<input name="createdBy" placeholder="Parker, Blake, Porter…"></label></div>
+      <div class="form-two"><label>Name<input name="name" required></label><label>Created by<input name="createdBy" placeholder="Your name or recipe author"></label></div>
       <div class="form-three"><label>Prep minutes<input name="prepMinutes" type="number" min="0"></label><label>Cook minutes<input name="cookMinutes" type="number" min="0"></label><label>Servings<input name="servings"></label></div>
       <label>Source URL<input name="url" type="url"></label>
       <label>Ingredients, one per line<textarea name="ingredients" rows="8" required></textarea></label>
@@ -177,6 +177,7 @@
   <dialog id="recipeViewDialog"><article class="dialog-card recipe-view" id="recipeView"></article></dialog>
   <div class="toast" id="toast"><strong></strong><span></span></div>
   <script src="/app.js" defer></script>
+  <script src="/pancoon-onboarding.js" defer></script>
   <script src="/stable-ui.js" defer></script>
   <script src="/zine-print-fix.js" defer></script>
   <script src="/recipe-url-autofill.js" defer></script>

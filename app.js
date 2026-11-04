@@ -2,8 +2,16 @@
   'use strict';
 
   const STORAGE_KEY = 'pantry-raccoon:v1';
-  const SEED_VERSION = 3;
-  const PLAN_SEED_VERSION = 2;
+  const SETTINGS_KEY = 'pancoon:settings:v1';
+  const MEAL_KINDS = ['breakfast','lunch','dinner','snacks'];
+  const DEFAULT_MEALS = ['dinner','lunch'];
+  const INSTALL_KIND_KEY = 'pancoon:install-kind:v1';
+  if (!localStorage.getItem(INSTALL_KIND_KEY)) {
+    const fresh = !localStorage.getItem(STORAGE_KEY) && !localStorage.getItem(SETTINGS_KEY);
+    localStorage.setItem(INSTALL_KIND_KEY, fresh ? 'new' : 'legacy');
+  }
+  window.PanCoonLegacyInstall = localStorage.getItem(INSTALL_KIND_KEY) === 'legacy';
+  window.PanCoonFirstInstall = !window.PanCoonLegacyInstall && !localStorage.getItem(SETTINGS_KEY);
   const GROCERY_CATEGORIES = ['Produce','Meat & Seafood','Dairy & Refrigerated','Bakery & Bread','Frozen','Pantry','Other'];
   const INVENTORY_CONFIG = {
     pantry: {label:'Pantry', categories:['Baking','Spices','Snacks','Staples','Other'], locations:['Pantry']},
@@ -23,35 +31,6 @@
     {id:'special:undecided',name:'Undecided',note:'Future you can solve this one.'}
   ];
 
-  const SEED_RECIPES = [
-    {
-      id:'beef-ragu',name:'Slow Cooked Shredded Beef Ragu Pasta',createdBy:'Nagi | RecipeTin Eats',category:'Dinner',
-      servings:'5–6 with pasta',prepMinutes:20,cookMinutes:150,totalMinutes:170,
-      url:'https://www.recipetineats.com/slow-cooked-shredded-beef-ragu-pasta/',
-      ingredients:['2.5 lb chuck beef, divided into 4 large pieces','1 tbsp salt','Black pepper, to taste','3 tbsp olive oil, divided','3 garlic cloves, minced','1 onion, diced','1 cup diced carrots','1 cup diced celery','28 oz crushed tomatoes','3 tbsp tomato paste','2 beef bouillon cubes, crumbled','1 cup full-bodied red wine or beef broth/stock','1 1/2 cups water for stovetop method','3/4 tsp dried thyme or 3 fresh thyme sprigs','3 dried bay leaves','1 lb dried pappardelle or another wide pasta','Freshly grated Parmesan, for serving','Fresh parsley, finely chopped, optional'],
-      instructions:['Pat the beef dry and season with salt and pepper.','Brown the beef aggressively in olive oil, then transfer to a plate.','Cook garlic and onion, then carrots and celery, until softened.','Add tomatoes, tomato paste, bouillon, wine or broth, water, thyme, and bay leaves. Return beef to the pot.','Cover and simmer gently about 2 hours, until the beef pulls apart easily.','Shred the beef and return it to the sauce. Simmer uncovered about 30 minutes until rich and thick.','Cook pappardelle just shy of done, reserving pasta water.','Toss pasta with hot ragu and enough pasta water for the sauce to cling. Serve with Parmesan and parsley.'],
-      notes:'Slow cooker option: sear beef and cook the soffritto first. Transfer to slow cooker with remaining ragu ingredients, leaving out the water. Cook LOW 6–8 hours, shred, then reduce sauce if needed.'
-    },
-    {
-      id:'chicken-shawarma-sheet-pan',name:'Chicken Shawarma Sheet Pan Dinner',createdBy:'The Modern Proper',category:'Dinner',
-      servings:'6',prepMinutes:20,cookMinutes:25,totalMinutes:45,
-      url:'https://themodernproper.com/print/chicken-shawarma-sheet-pan-dinner',
-      ingredients:['1 cup plain Greek yogurt','2 teaspoons ground cumin','1 teaspoon ground cardamom','2 teaspoons ground turmeric','2 teaspoons ground cinnamon','2 teaspoons kosher salt','2 pounds boneless, skinless chicken breasts, cut into 1-inch strips','2 tablespoons extra-virgin olive oil','1 red onion, cut into 1/2-inch thick slices','2 large red bell peppers, cut into 1/2-inch thin strips','1/2 cup peppadew peppers, drained','1 cup tahini','4 garlic cloves, minced','1/3 cup extra-virgin olive oil','1/2 cup fresh lemon juice (from 3 lemons)','1/2 teaspoon kosher salt','4 to 8 pita breads, warmed','1/2 English cucumber, diced','1 Roma tomato, sliced','Minced fresh flat leaf parsley'],
-      instructions:['Preheat the oven to 350°F with a rack in the center position.','In a large bowl, combine the yogurt, cumin, cardamom, turmeric, cinnamon, and salt. Add the chicken and toss until fully coated.','Spread 1 tablespoon olive oil on a large rimmed sheet pan. Arrange the chicken, onion, bell peppers, and peppadews on the pan. Drizzle with the remaining tablespoon olive oil and bake about 20 minutes, until the chicken is cooked through and the vegetables are tender.','While the chicken cooks, whisk the tahini, garlic, olive oil, lemon juice, salt, and 2/3 cup water until smooth.','Fill warmed pitas with the chicken and vegetables. Top with cucumber, tomato, tahini sauce, and parsley.'],
-      notes:'Blake is making this for Saturday dinner.'
-    },
-    {
-      id:'porter-sunshine-salad',name:'Chicken Apple Sunshine Salad',createdBy:'Porter',category:'Dinner',
-      servings:'3',prepMinutes:15,cookMinutes:15,totalMinutes:30,
-      ingredients:['1 large container mixed greens','1 1/2 pounds chicken breasts, grilled and sliced','1 green apple, chopped or thinly sliced','1 cucumber, chopped','2 tomatoes, chopped','1 cup shredded carrots','1/2 cup blue cheese crumbles','1/3 cup sunflower seeds',"Dressing of each person's choice"],
-      instructions:['Grill or warm the chicken and slice it.','Divide mixed greens among bowls.','Add green apple, cucumber, tomato, and carrots.','Top with chicken, blue cheese, and sunflower seeds.','Serve with dressing choices.'],
-      notes:'Same salad as last week, specifically green apple this time.'
-    },
-    {id:'blake-tacos',name:"Blake's Taco Night",createdBy:'Blake',category:'Dinner',servings:'3',prepMinutes:15,cookMinutes:20,totalMinutes:35,ingredients:["Taco protein for Blake's usual taco night",'Taco seasoning','Taco shells or tortillas','Shredded lettuce','Tomatoes','Taco toppings of choice'],instructions:['Prepare the taco filling using Blake’s usual method.','Warm shells or tortillas.','Set out toppings and build tacos.']},
-    {id:'freezer-butter-chicken',name:'Freezer Butter Chicken with Rice',createdBy:'Parker',category:'Dinner',servings:'3',prepMinutes:5,cookMinutes:25,totalMinutes:30,ingredients:['1 freezer butter chicken meal','Rice, enough for 3 servings'],instructions:['Heat the freezer butter chicken according to package or freezer-label directions.','Cook rice while it heats.','Serve butter chicken over rice.']},
-    {id:'crispy-chicken-cutlets',name:'Crispy Chicken Cutlets with Buttered Noodles & Broccoli',createdBy:'The Mediterranean Dish + Talbot sides',category:'Dinner',servings:'4 cutlets',prepMinutes:20,cookMinutes:10,totalMinutes:30,url:'https://www.themediterraneandish.com/breaded-chicken-cutlets/',ingredients:['4 chicken cutlets or 2 boneless skinless chicken breasts','Kosher salt','Black pepper','1/2 cup all-purpose flour','2 large eggs','1 cup unseasoned breadcrumbs or Panko','1/2 cup grated Parmesan','2 teaspoons Italian seasoning','Extra virgin olive oil, for frying','Lemon wedges, for serving','Buttered noodles, for serving','Broccoli, for serving'],instructions:['Season chicken with salt and pepper.','Set up flour, beaten eggs, and breadcrumbs mixed with Parmesan and Italian seasoning.','Coat chicken in flour, egg, then breadcrumbs. Rest about 10 minutes.','Pan-fry until crisp and golden, about 3 minutes per side.','Serve with lemon wedges, buttered noodles, and broccoli.']}
-  ];
-
   let state = load();
   let toastTimer;
 
@@ -59,7 +38,7 @@
     return {
       version:3, recipes:[], plan:{}, inventories:{pantry:[],fridge:[],freezer:[]},
       groceryReview:{}, groceryDismissed:{}, groceryExtras:[], squirrelQueue:[],
-      seedVersion:0, planSeedVersion:0
+      // Brand-new kitchens begin empty. Existing local state is never erased here.
     };
   }
   function load(){
@@ -71,9 +50,24 @@
   function esc(v){ return String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch])); }
   function lines(v){ return String(v||'').split(/\r?\n/).map(x=>x.replace(/^\s*(?:[-*•]|\d+[.)])\s*/,'').trim()).filter(Boolean); }
   function dateKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-  function fridayStart(now=new Date()){ const d=new Date(now); d.setHours(0,0,0,0); d.setDate(d.getDate()-((d.getDay()-5+7)%7)); return d; }
-  function weekDates(){ const s=fridayStart(); return Array.from({length:8},(_,i)=>{const d=new Date(s);d.setDate(s.getDate()+i);return d;}); }
-  function weekKey(){ return dateKey(weekDates()[0]); }
+  function planSettings(){
+    let raw={}; try {raw=JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}')||{};} catch (_) {}
+    const weekday=(v,def)=>Number.isInteger(Number(v))&&Number(v)>=0&&Number(v)<=6?Number(v):def;
+    const meals=Array.isArray(raw.meals)?raw.meals.filter(v=>MEAL_KINDS.includes(v)):DEFAULT_MEALS;
+    return {weekStart:weekday(raw.weekStart,0),planningDay:weekday(raw.planningDay,6),meals,
+      mealDays:raw.mealDays&&typeof raw.mealDays==='object'?raw.mealDays:{},
+      members:Array.isArray(raw.members)?raw.members.filter(v=>typeof v==='string'&&v.trim()):[]};
+  }
+  function weekDates(now=new Date()){
+    const start=new Date(now);start.setHours(0,0,0,0);
+    start.setDate(start.getDate()-((start.getDay()-planSettings().weekStart+7)%7));
+    return Array.from({length:7},(_,i)=>{const d=new Date(start);d.setDate(start.getDate()+i);return d;});
+  }
+  function weekKey(){return dateKey(weekDates()[0]);}
+  function mealsForDay(date){
+    const config=planSettings(),custom=config.mealDays[date.getDay()];
+    return Array.isArray(custom)?custom.filter(v=>MEAL_KINDS.includes(v)):config.meals;
+  }
   function fmt(d,opts){ return new Intl.DateTimeFormat('en-US',opts).format(d); }
   function toast(title,detail=''){ const t=document.getElementById('toast'); if(!t)return; t.querySelector('strong').textContent=title; t.querySelector('span').textContent=detail; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),3200); }
 
@@ -96,27 +90,8 @@
     state.squirrelQueue=Array.isArray(state.squirrelQueue)?state.squirrelQueue:[];
   }
 
-  function ensureSeeds(){
+  function initializeKitchen(){
     migrate();
-    if(Number(state.seedVersion||0)<SEED_VERSION){
-      for(const seed of SEED_RECIPES){
-        const existing=state.recipes.find(r=>r.id===seed.id || (r.url&&seed.url&&r.url===seed.url));
-        if(!existing) state.recipes.push({...seed,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
-      }
-      state.seedVersion=SEED_VERSION;
-    }
-    if(Number(state.planSeedVersion||0)<PLAN_SEED_VERSION){
-      state.plan['2026-08-08:lunch'] ||= {choice:'special:out',cook:'Nobody'};
-      state.plan['2026-08-09:lunch'] ||= {choice:'special:leftovers',cook:'Nobody'};
-      const sat=state.plan['2026-08-08:dinner'];
-      if(!sat || sat.choice==='special:out') state.plan['2026-08-08:dinner']={choice:'recipe:chicken-shawarma-sheet-pan',cook:'Blake'};
-      state.plan['2026-08-09:dinner'] ||= {choice:'recipe:beef-ragu',cook:'Parker'};
-      state.plan['2026-08-10:dinner'] ||= {choice:'recipe:porter-sunshine-salad',cook:'Porter'};
-      state.plan['2026-08-11:dinner'] ||= {choice:'recipe:blake-tacos',cook:'Blake'};
-      state.plan['2026-08-12:dinner'] ||= {choice:'recipe:freezer-butter-chicken',cook:'Parker'};
-      state.plan['2026-08-13:dinner'] ||= {choice:'recipe:crispy-chicken-cutlets',cook:'Parker'};
-      state.planSeedVersion=PLAN_SEED_VERSION;
-    }
     save();
   }
 
@@ -124,7 +99,8 @@
     document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.dataset.page===name));
     document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.route===name));
     const meta={
-      plan:['This week','Friday through Friday. Weekend lunches included.'],
+      plan:['This week','Your week, your meals. Change the schedule in Settings.'],
+      settings:['Settings','Customize your kitchen and protect your saved data.'],
       recipes:['Recipe box','Save it once. Cook it whenever.'],
       pantry:['Pantry','Baking, spices, snacks, staples, and the useful stuff.'],
       fridge:['Fridge','Track the things that disappear quietly.'],
@@ -143,7 +119,11 @@
     const recipes=[...state.recipes].sort((a,b)=>a.name.localeCompare(b.name)).map(r=>`<option value="recipe:${esc(r.id)}" ${selected===`recipe:${r.id}`?'selected':''}>${esc(r.name)}</option>`).join('');
     return `<option value="">Choose ${kind}…</option><optgroup label="Real life">${specials}</optgroup><optgroup label="Recipes">${recipes}</optgroup>`;
   }
-  function cookOptions(selected=''){ return ['Unassigned','Parker','Blake','Porter','Nobody'].map(v=>`<option ${selected===v?'selected':''}>${v}</option>`).join(''); }
+  function cookOptions(selected=''){
+    const savedNames=Object.values(state.plan).map(slot=>slot?.cook).filter(Boolean);
+    const options=[...new Set(['Unassigned','Nobody',...planSettings().members,...savedNames,selected].filter(Boolean))];
+    return options.map(name=>'<option '+(name===selected?'selected':'')+'>'+esc(name)+'</option>').join('');
+  }
 
   function mealDisplay(day,kind){
     const slot=state.plan[`${day}:${kind}`]||{choice:'',cook:'Unassigned'};
@@ -159,24 +139,24 @@
   }
 
   function renderPlan(){
-    const dates=weekDates(), today=dateKey(new Date());
-    document.getElementById('weekRange').textContent=`${fmt(dates[0],{month:'short',day:'numeric'})} → ${fmt(dates[7],{month:'short',day:'numeric'})}`;
+    const dates=weekDates(),today=dateKey(new Date());
+    const opened=new Set([...document.querySelectorAll('#mealPlan .plan-edit[open]')].map(el=>el.dataset.day));
+    document.getElementById('weekRange').textContent=fmt(dates[0],{month:'short',day:'numeric'})+' → '+fmt(dates[6],{month:'short',day:'numeric'});
     document.getElementById('mealPlan').innerHTML=dates.map(date=>{
-      const day=dateKey(date), weekend=[0,6].includes(date.getDay());
-      const dinner=state.plan[`${day}:dinner`]||{choice:'',cook:'Unassigned'};
-      const lunch=state.plan[`${day}:lunch`]||{choice:'',cook:'Nobody'};
-      return `<article class="meal-day ${day===today?'today':''}">
-        <div class="meal-date"><strong>${fmt(date,{weekday:'long'})}</strong><span>${fmt(date,{month:'short',day:'numeric'})}</span></div>
-        <div class="day-meals">${weekend?mealDisplay(day,'lunch'):''}${mealDisplay(day,'dinner')}</div>
-        <details class="plan-edit"><summary>Edit plan</summary>
-          ${weekend?`<label>Lunch<select data-plan-choice="${day}" data-plan-kind="lunch">${choiceOptions(lunch.choice,'lunch')}</select></label>`:''}
-          <label>Dinner<select data-plan-choice="${day}" data-plan-kind="dinner">${choiceOptions(dinner.choice,'dinner')}</select></label>
-          <label>Cook<select data-plan-cook="${day}" data-plan-kind="dinner">${cookOptions(dinner.cook||'Unassigned')}</select></label>
-        </details>
-      </article>`;
+      const day=dateKey(date),kinds=mealsForDay(date);
+      const displays=kinds.map(kind=>mealDisplay(day,kind)).join('');
+      const controls=kinds.map(kind=>{
+        const slot=state.plan[day+':'+kind]||{choice:'',cook:'Unassigned'};
+        const label=kind.charAt(0).toUpperCase()+kind.slice(1);
+        return '<label>'+esc(label)+'<select data-plan-choice="'+day+'" data-plan-kind="'+kind+'">'+choiceOptions(slot.choice,kind)+'</select></label>'+
+          '<label>'+esc(label)+' cook<select data-plan-cook="'+day+'" data-plan-kind="'+kind+'">'+cookOptions(slot.cook||'Unassigned')+'</select></label>';
+      }).join('');
+      return '<article class="meal-day '+(day===today?'today':'')+'">'+
+        '<div class="meal-date"><strong>'+fmt(date,{weekday:'long'})+'</strong><span>'+fmt(date,{month:'short',day:'numeric'})+'</span></div>'+
+        '<div class="day-meals">'+(displays||'<div class="empty-meal">No meals configured. Open Settings to choose some.</div>')+'</div>'+
+        (controls?'<details class="plan-edit" data-day="'+day+'" '+(opened.has(day)?'open':'')+'><summary>Edit plan</summary>'+controls+'</details>':'')+'</article>';
     }).join('');
   }
-
   function renderRecipes(){
     const q=(document.getElementById('recipeSearch')?.value||'').trim().toLowerCase();
     const list=[...state.recipes].filter(r=>!q||[r.name,r.createdBy,r.category].some(v=>String(v||'').toLowerCase().includes(q))).sort((a,b)=>a.name.localeCompare(b.name));
@@ -282,7 +262,7 @@
     return null;
   }
   function plannedMealEntries(){
-    const entries=[]; for(const date of weekDates()){const day=dateKey(date);for(const kind of ['lunch','dinner']){const recipe=recipeForChoice(state.plan[`${day}:${kind}`]?.choice);if(recipe)entries.push({date,kind,recipe});}} return entries;
+    const entries=[]; for(const date of weekDates()){const day=dateKey(date);for(const kind of mealsForDay(date)){const recipe=recipeForChoice(state.plan[`${day}:${kind}`]?.choice);if(recipe)entries.push({date,kind,recipe});}} return entries;
   }
   function review(){state.groceryReview[weekKey()]||={};return state.groceryReview[weekKey()];}
   function dismissed(){state.groceryDismissed[weekKey()]||={};return state.groceryDismissed[weekKey()];}
@@ -347,7 +327,8 @@
   }
 
   function start(){
-    ensureSeeds(); inventoryFormOptions(); renderPlan();renderRecipes();renderAllInventory();renderGrocery();route((location.hash||'#plan').slice(1));
+    initializeKitchen(); inventoryFormOptions(); renderPlan();renderRecipes();renderAllInventory();renderGrocery();route((location.hash||'#plan').slice(1));
+    window.addEventListener('pancoon:settings-changed',()=>{renderPlan();renderGrocery();route((location.hash||'#plan').slice(1));});
 
     document.addEventListener('click',event=>{
       const nav=event.target.closest('[data-route]'); if(nav)return route(nav.dataset.route);
