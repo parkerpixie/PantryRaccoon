@@ -1,0 +1,30 @@
+/* PanCoon's onboarding and kitchen preferences. */
+.pancoon-settings-card{max-width:920px;margin:0 0 18px}
+.pancoon-settings-card h3{margin:0 0 10px}
+.pancoon-settings-card p{line-height:1.5;color:var(--muted)}
+.pancoon-settings-card fieldset{border:1px solid var(--line);border-radius:16px;margin:22px 0;padding:18px;min-width:0}
+.pancoon-settings-card legend{font-weight:800;padding:0 6px}
+.pancoon-setting-pair{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.pancoon-setting-pair label,.pancoon-members-label{display:grid;gap:8px;font-weight:750;font-size:14px}
+.pancoon-members-label span{font-size:12px;color:var(--muted);font-weight:500}
+.pancoon-meal-options{display:flex;align-items:center;flex-wrap:wrap;gap:10px 18px}
+.pancoon-meal-check{display:inline-flex!important;align-items:center;gap:7px;font-size:14px;cursor:pointer;white-space:nowrap;font-weight:600!important}
+.pancoon-meal-check input{width:18px;height:18px;accent-color:var(--teal);margin:0}
+.pancoon-day-list{margin-top:16px;border-top:1px solid var(--line)}
+.pancoon-day-row{display:grid;grid-template-columns:126px 1fr;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
+.pancoon-settings-card .button-row{margin-top:16px}
+#pancoonBackupFile{display:none}
+#pancoonSetupDialog{width:min(540px,calc(100% - 24px));max-height:calc(100% - 32px);border:0;border-radius:24px;padding:0;background:var(--cream);box-shadow:0 35px 100px rgba(0,0,0,.28)}
+#pancoonSetupDialog::backdrop{background:rgba(24,21,26,.74);backdrop-filter:blur(4px)}
+.pancoon-wizard{padding:clamp(22px,5vw,38px);display:grid;gap:16px;overflow:auto}
+.pancoon-wizard h2{font-family:Georgia,serif;margin:3px 0 0;font-size:clamp(26px,4.5vw,36px)}
+.pancoon-wizard>p:not(.eyebrow){line-height:1.55;color:var(--muted);margin:0}
+.pancoon-wizard>label{display:grid;gap:10px;font-weight:800;font-size:13px}
+.pancoon-wizard-progress{height:6px;border-radius:999px;background:#e6dcd5;overflow:hidden}
+.pancoon-wizard-progress span{display:block;height:100%;background:var(--teal);border-radius:999px;transition:width .2s}
+.pancoon-wizard-actions{display:flex;justify-content:space-between;gap:10px;margin-top:8px}
+.pancoon-wizard-actions button{min-width:110px}
+.pancoon-wizard-actions button:disabled{opacity:.45;cursor:default}
+.pancoon-wizard-skip{border:0;background:transparent;color:var(--muted);padding:8px;text-decoration:underline;font-size:12px;font-weight:600}
+@media(max-width:650px){.pancoon-setting-pair{grid-template-columns:1fr}.pancoon-day-row{grid-template-columns:1fr;gap:8px}.pancoon-settings-card fieldset{padding:14px}.pancoon-meal-options{gap:10px 12px}#pancoonSetupDialog{max-height:95vh}.pancoon-wizard-actions button{min-width:0;flex:1}}
+@media(prefers-reduced-motion:reduce){.pancoon-wizard-progress span{transition:none}}
