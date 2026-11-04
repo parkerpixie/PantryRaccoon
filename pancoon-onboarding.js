@@ -6,6 +6,7 @@
   const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const LEGACY_SNAPSHOT_KEY = 'pancoon:prelaunch-safety-snapshot:v1';
   const FIRST_INSTALL = Boolean(window.PanCoonFirstInstall);
+  const LEGACY_INSTALL = Boolean(window.PanCoonLegacyInstall);
   let wizardStep = 0;
   let wizardDraft = null;
 
@@ -291,7 +292,7 @@
       }
     });
     // This snapshot is a safety net for legacy browser users. It never overwrites a saved kitchen.
-    if (!FIRST_INSTALL && !localStorage.getItem(LEGACY_SNAPSHOT_KEY)) {
+    if (LEGACY_INSTALL && !localStorage.getItem(LEGACY_SNAPSHOT_KEY)) {
       try {
         const storage = backupStorage();
         if (storage['pantry-raccoon:v1']) {
