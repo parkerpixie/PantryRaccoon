@@ -51,7 +51,9 @@
           auth: {persistSession:true, autoRefreshToken:true, detectSessionInUrl:true}
         });
         c.auth.onAuthStateChange((_event, session) => {
-          signedInUser = session?.user || null;
+          const nextUser = session?.user || null;
+          if (signedInUser?.id && signedInUser.id !== nextUser?.id) wipeImageUrls();
+          signedInUser = nextUser;
           setTimeout(() => { render(); hydrateImages(); }, 0);
         });
         return c;
@@ -180,6 +182,7 @@
     if (working) return;
     working = true;
     const createdPaths = [];
+    let savedRemote = false;
     try {
       const owner = await user();
       const c = await sdk();
@@ -236,6 +239,7 @@
         user_id:owner.id, snapshot, updated_at:new Date().toISOString()
       }, {onConflict:'user_id'}).select('snapshot').single();
       if (write.error) throw write.error;
+      savedRemote = true;
       if (write.data?.snapshot?.userId !== owner.id ||
           write.data.snapshot.artworkCount !== uploaded) throw new Error('Could not verify the private kitchen copy.');
       message('Private cloud copy verified: ' + kitchen.recipes.length + ' recipes and ' +
@@ -243,8 +247,8 @@
     } catch (error) {
       message('Private migration stopped: ' + (error.message || 'Unknown problem') +
         '. Your local kitchen was not changed.', true);
-      if (createdPaths.length) {
-        try { (await sdk()).storage.from(BUCKET).remove(createdPaths); } catch (_) {}
+      if (createdPaths.length && !savedRemote) {
+        try { await (await sdk()).storage.from(BUCKET).remove(createdPaths); } catch (_) {}
       }
     } finally {
       working = false;
