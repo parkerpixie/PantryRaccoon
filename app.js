@@ -53,7 +53,7 @@
   function planSettings(){
     let raw={}; try {raw=JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}')||{};} catch (_) {}
     const weekday=(v,def)=>Number.isInteger(Number(v))&&Number(v)>=0&&Number(v)<=6?Number(v):def;
-    const meals=Array.isArray(raw.meals)?raw.meals.filter(v=>MEAL_KIN.includes(v)):DEFAULT_MEALS;
+    const meals=Array.isArray(raw.meals)?raw.meals.filter(v=>MEAL_KINDS.includes(v)):DEFAULT_MEALS;
     return {weekStart:weekday(raw.weekStart,0),planningDay:weekday(raw.planningDay,6),meals,
       mealDays:raw.mealDays&&typeof raw.mealDays==='object'?raw.mealDays:{},
       members:Array.isArray(raw.members)?raw.members.filter(v=>typeof v==='string'&&v.trim()):[]};
@@ -66,7 +66,7 @@
   function weekKey(){return dateKey(weekDates()[0]);}
   function mealsForDay(date){
     const config=planSettings(),custom=config.mealDays[date.getDay()];
-    return Array.isArray(custom)?custom.filter(v=>MEAL_KIN.includes(v)):config.meals;
+    return Array.isArray(custom)?custom.filter(v=>MEAL_KINDS.includes(v)):config.meals;
   }
   function fmt(d,opts){ return new Intl.DateTimeFormat('en-US',opts).format(d); }
   function toast(title,detail=''){ const t=document.getElementById('toast'); if(!t)return; t.querySelector('strong').textContent=title; t.querySelector('span').textContent=detail; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),3200); }
