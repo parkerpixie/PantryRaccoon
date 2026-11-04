@@ -151,15 +151,6 @@
     }
   }
 
-  function loadRepairHelper() {
-    if (document.querySelector('script[data-pancoon-recipe-repair]')) return;
-    const script = document.createElement('script');
-    script.src = '/recipe-card-repair.js?v=20260811-0612';
-    script.defer = true;
-    script.dataset.pancoonRecipeRepair = 'true';
-    document.head.appendChild(script);
-  }
-
   function setup() {
     const form = document.getElementById(FORM_ID);
     if (!form) return;
@@ -168,7 +159,6 @@
     // had a chance to read the URL. We validate manually so URL-only saves work.
     form.noValidate = true;
     addUrlHint(form);
-    loadRepairHelper();
 
     form.elements.name?.addEventListener('input', () => form.elements.name.setCustomValidity(''));
     form.elements.ingredients?.addEventListener('input', () => form.elements.ingredients.setCustomValidity(''));
@@ -182,54 +172,4 @@
   } else {
     setup();
   }
-})();
-
-// One-time loader for the finalized Aug 16–20 family meal week. The seed file
-// guards itself with a localStorage flag, so future visits do not overwrite
-// any changes Parker makes after the week is installed.
-(() => {
-  if (document.querySelector('script[data-pancoon-aug16-week]')) return;
-  const script = document.createElement('script');
-  script.src = '/weekly-plan-2026-08-16.js?v=20260815-1';
-  script.defer = true;
-  script.dataset.pancoonAug16Week = 'true';
-  document.head.appendChild(script);
-})();
-
-// Department-based store mode for the Aug 16 grocery run. This is separate
-// from recipe-derived grocery suggestions so Parker and Blake can work from
-// the exact curated list they agreed on for today's trip.
-(() => {
-  if (document.querySelector('script[data-pancoon-shopping-trip]')) return;
-  const script = document.createElement('script');
-  script.src = '/shopping-list-2026-08-16.js?v=20260816-1';
-  script.defer = true;
-  script.dataset.pancoonShoppingTrip = 'true';
-  document.head.appendChild(script);
-})();
-
-// Automation-ready inventory contract. This intentionally stays separate from
-// PanCoon's legacy local state so the richer schema can evolve safely before a
-// future Supabase/n8n integration becomes the source of truth.
-(() => {
-  if (document.querySelector('script[data-pancoon-inventory-contract]')) return;
-  const script = document.createElement('script');
-  script.src = '/inventory-contract-v2.js?v=20260830-1';
-  script.defer = true;
-  script.dataset.pancoonInventoryContract = 'true';
-  document.head.appendChild(script);
-})();
-
-// Receipt ledger + inventory proposal contract for Eat Me First. The first
-// Hy-Vee order is stored as a real Phase 0 fixture, but proposals are never
-// written into household inventory automatically. Human review stays between
-// receipt parsing and inventory mutation so substitutions and printed dates
-// cannot silently become bad data.
-(() => {
-  if (document.querySelector('script[data-pancoon-receipt-contract]')) return;
-  const script = document.createElement('script');
-  script.src = '/receipt-contract-v1.js?v=20260831-1';
-  script.defer = true;
-  script.dataset.pancoonReceiptContract = 'true';
-  document.head.appendChild(script);
 })();
