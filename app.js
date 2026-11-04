@@ -5,7 +5,13 @@
   const SETTINGS_KEY = 'pancoon:settings:v1';
   const MEAL_KINDS = ['breakfast','lunch','dinner','snacks'];
   const DEFAULT_MEALS = ['dinner','lunch'];
-  window.PanCoonFirstInstall = !localStorage.getItem(STORAGE_KEY) && !localStorage.getItem(SETTINGS_KEY);
+  const INSTALL_KIND_KEY = 'pancoon:install-kind:v1';
+  if (!localStorage.getItem(INSTALL_KIND_KEY)) {
+    const fresh = !localStorage.getItem(STORAGE_KEY) && !localStorage.getItem(SETTINGS_KEY);
+    localStorage.setItem(INSTALL_KIND_KEY, fresh ? 'new' : 'legacy');
+  }
+  window.PanCoonLegacyInstall = localStorage.getItem(INSTALL_KIND_KEY) === 'legacy';
+  window.PanCoonFirstInstall = !window.PanCoonLegacyInstall && !localStorage.getItem(SETTINGS_KEY);
   const GROCERY_CATEGORIES = ['Produce','Meat & Seafood','Dairy & Refrigerated','Bakery & Bread','Frozen','Pantry','Other'];
   const INVENTORY_CONFIG = {
     pantry: {label:'Pantry', categories:['Baking','Spices','Snacks','Staples','Other'], locations:['Pantry']},
