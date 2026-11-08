@@ -95,6 +95,9 @@
     if (!target) return;
     const config = load();
     target.innerHTML =
+      '<article id="pancoonHouseholdCard" class="card pancoon-settings-card" aria-live="polite">' +
+      '<h3>☁️ Your shared PanCoon kitchen</h3>' +
+      '<p id="pancoonHouseholdStartup">Loading secure household sign-in…</p></article>' +
       '<div class="page-heading"><div><p class="eyebrow">Your kitchen</p><h2>Make PanCoon yours</h2>' +
       '<p>Choose your week, the meals you plan, and the people who cook. Your saved kitchen stays on this device for now.</p></div></div>' +
       '<article class="card pancoon-settings-card">' +
@@ -120,6 +123,8 @@
       '<input id="pancoonBackupFile" type="file" accept=".json,application/json" hidden>' +
       '<p id="pancoonArtworkArchiveStatus" class="hint" role="status">The ZIP includes available artwork and reports missing references. Keep both backups safe before moving images.</p>' +
       '<p class="hint">ZIP artwork is for safekeeping; the current restore control accepts JSON only. Neither file is automatic cloud sync.</p></article>';
+    // Keep the shared-kitchen panel populated whenever kitchen settings are redrawn.
+    window.dispatchEvent(new Event('pancoon:settings-rendered'));
   }
 
   function readSelected(root, selector) {
@@ -264,6 +269,13 @@
     dialog.setAttribute('aria-labelledby', 'pancoonSetupTitle');
     document.body.appendChild(dialog);
     renderSettings();
+    // If the cloud module did not start, show an actionable error rather than an empty space.
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const startup = document.getElementById('pancoonHouseholdStartup');
+        if (startup) startup.textContent = 'Cloud sign-in did not initialize. Reload PanCoon (Command + Shift + R), then check your connection. Your recipes remain saved on this device.';
+      }, 500);
+    }, {once:true});
     document.addEventListener('submit', event => {
       if (event.target.id === 'pancoonSettingsForm') settingsSubmit(event);
     });
