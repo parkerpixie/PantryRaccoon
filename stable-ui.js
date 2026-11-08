@@ -562,6 +562,7 @@
     });
 
     window.addEventListener('pancoon:zine-changed', () => { decorateRecipeCards(); updateTonight(); });
+    window.addEventListener('pancoon:cloud-refresh', () => { refreshInventoryEnhancements(); updateTonight(); decorateRecipeCards(); });
 
     window.addEventListener('storage', event => {
       if (event.key === STATE_KEY){
