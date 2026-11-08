@@ -58,6 +58,12 @@
       .recipe-zine-field .zine-field-status{font-size:12px;color:var(--muted);margin:0}
       .recipe-zine-field .zine-field-thumb{display:flex;align-items:center;gap:12px}
       .recipe-zine-field .zine-field-thumb img{width:70px;max-height:94px;object-fit:cover;object-position:top;border-radius:8px;border:1px solid var(--line)}
+      .tonight-card.has-dinner-zine{grid-template-columns:minmax(0,1.15fr) minmax(240px,.85fr)}
+      .tonight-card.has-dinner-zine .tonight-art{background:#eee0d0;display:grid;place-items:center;padding:14px;overflow:hidden}
+      .tonight-card.has-dinner-zine .dinner-zine-hero-button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;width:100%;height:100%;border:0;background:transparent;padding:0;cursor:pointer}
+      .tonight-card.has-dinner-zine .dinner-zine-hero-button img{width:100%;height:auto;max-width:100%;max-height:360px;min-height:0;object-fit:contain!important;object-position:center;display:block;box-shadow:0 6px 20px rgba(50,34,29,.18);border-radius:7px}
+      .tonight-card.has-dinner-zine .dinner-zine-hero-button span{font-size:11px;font-weight:800;color:#57444d}
+      @media(max-width:760px){.tonight-card.has-dinner-zine{display:flex;flex-direction:column;min-height:0}.tonight-card.has-dinner-zine .tonight-details{margin:8px;padding:17px;border-radius:16px}.tonight-card.has-dinner-zine .tonight-details:after{display:none}.tonight-card.has-dinner-zine .tonight-art{min-height:0;padding:10px 12px 15px}.tonight-card.has-dinner-zine .dinner-zine-hero-button img{max-height:490px;width:auto;max-width:100%;min-height:0}}
       .recipe-zine-preview{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr);gap:20px;align-items:center;margin:22px 0 26px;padding:16px;border:1px solid var(--line);border-radius:18px;background:#f7efe3}
       .recipe-zine-preview button{display:block;width:100%;padding:0;border:0;background:transparent;cursor:pointer;border-radius:12px;overflow:hidden;box-shadow:0 10px 28px rgba(54,42,49,.16)}
       .recipe-zine-preview img{display:block;width:100%;height:auto;max-height:330px;object-fit:cover;object-position:top;background:#201a1b}
@@ -84,6 +90,29 @@
     return readZines()[recipeId] || '';
   }
 
+  // Follow only the current day's DINNER plan, not lunch or another recipe.
+  function renderDinnerArtwork(recipeId){
+    const card=document.querySelector('.tonight-card');
+    const art=card?.querySelector('.tonight-art');
+    if(!art)return;
+    const source=recipeId?zinePathFor(recipeId):'';
+    if(!source){
+      card.classList.remove('has-dinner-zine');
+      art.setAttribute('aria-hidden','true');
+      if(art.dataset.zineSource || !art.querySelector('img')){
+        art.innerHTML='<img src="/assets/HERO%20Raccoon%20in%20Kitchen.png" alt="" decoding="async">';
+        delete art.dataset.zineSource;
+      }
+      return;
+    }
+    card.classList.add('has-dinner-zine');
+    art.removeAttribute('aria-hidden');
+    if(art.dataset.zineSource!==source || !art.querySelector('.dinner-zine-hero-button')){
+      art.dataset.zineSource=source;
+      art.innerHTML=`<button type="button" class="dinner-zine-hero-button" data-view-recipe="${esc(recipeId)}" aria-label="Open tonight's dinner zine"><img src="${esc(source)}" alt="Tonight's dinner recipe zine"><span>Tap to view full-size zine</span></button>`;
+    }
+  }
+
   function updateTonight(){
     const name = document.getElementById('tonightMealName');
     const cook = document.getElementById('tonightCook');
@@ -97,6 +126,7 @@
       name.textContent = 'Nothing planned yet';
       cook.textContent = 'Cook not assigned yet.';
       actions.innerHTML = '';
+      renderDinnerArtwork('');
       return;
     }
 
@@ -110,6 +140,7 @@
       actions.innerHTML = recipe
         ? `<button type="button" class="primary" data-view-recipe="${esc(id)}">View Recipe</button><button type="button" class="secondary" data-print-recipe="${esc(id)}">Print</button>${zinePathFor(id) ? `<button type="button" class="secondary" data-open-zine="${esc(id)}">Open Recipe Zine</button>` : ''}`
         : '';
+      renderDinnerArtwork(recipe ? id : '');
       return;
     }
 
@@ -119,6 +150,7 @@
       ? `${slot.cook} is handling dinner tonight.`
       : special[1];
     actions.innerHTML = '';
+    renderDinnerArtwork('');
   }
 
   function scheduleFiveAmRefresh(){
@@ -422,6 +454,48 @@
     window.open(`/zine.html?recipe=${encodeURIComponent(recipeId)}`, '_blank', 'noopener');
   }
 
+  function uploadZineForRecipe(recipeId, button){
+    const recipe=readState().recipes?.find(item=>item.id===recipeId);
+    const store=window.PanCoonZineStore;
+    if(!recipe || !store){alert('Recipe or image storage was not found. Reload PanCoon and retry.');return;}
+    const picker=document.createElement('input');
+    picker.type='file';picker.accept='image/png,image/jpeg,image/webp';picker.hidden=true;
+    document.body.appendChild(picker);
+    picker.addEventListener('change',async()=>{
+      const file=picker.files?.[0];
+      if(!file){picker.remove();return;}
+      const label=button.textContent;
+      button.disabled=true;button.textContent='Saving zine…';
+      try{
+        const ref=await store.put(recipeId,file);
+        const image=await store.resolve(ref);
+        await new Promise((resolve,reject)=>{
+          const proof=new Image();
+          proof.onload=resolve;
+          proof.onerror=()=>reject(new Error('Saved file could not be displayed as an image.'));
+          proof.src=image;
+        });
+        const zines=readZines();
+        zines[recipeId]=ref;
+        writeJson(ZINES_KEY,zines);
+        decorateRecipeCards();
+        updateTonight();
+        button.textContent='Replace zine';
+        let feedback=button.closest('.recipe-card')?.querySelector('.zine-upload-feedback');
+        if(!feedback){feedback=document.createElement('small');feedback.className='zine-upload-feedback';button.closest('.recipe-card')?.querySelector('.recipe-card-copy')?.appendChild(feedback);}
+        if(feedback)feedback.textContent='✓ Image saved and linked to this recipe';
+        window.dispatchEvent(new CustomEvent('pancoon:zine-changed',{detail:{recipeId}}));
+      }catch(error){
+        alert('Could not attach zine to '+recipe.name+': '+(error?.message||'Unknown error'));
+        button.textContent=label;
+      }finally{
+        button.disabled=false;
+        picker.remove();
+      }
+    },{once:true});
+    picker.click();
+  }
+
   function start(){
     injectStyles();
     ensureZineField();
@@ -454,6 +528,8 @@
     });
 
     document.addEventListener('click', event => {
+      const uploader=event.target.closest('[data-upload-zine]');
+      if(uploader){event.preventDefault();uploadZineForRecipe(uploader.dataset.uploadZine,uploader);return;}
       const filter = event.target.closest('[data-inventory-filter]');
       if (filter){
         const kind = filter.dataset.inventoryKind;
