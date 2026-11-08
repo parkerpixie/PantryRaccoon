@@ -40,7 +40,7 @@
       s.onerror=()=>reject(Error('Sign-in library could not load. Check your internet connection.'));
       document.head.appendChild(s);
     }).then(lib=>{
-      client=lib.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+      client=lib.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'pkce'}});
       return client;
     }).catch(err=>{initPromise=null;throw err;});
     return initPromise;
@@ -313,7 +313,7 @@
     const c=await sdk();
     const {error}=await c.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+'/#settings'}});
     if(error)throw error;
-    notify('Check your email for the secure sign-in link. If the link opens the wrong address, check the allowed redirect URLs in Supabase Auth settings.');
+    notify('Check your email and open the secure sign-in link on this same device. If it opens the wrong address, check Auth → URL Configuration.');
   }
   async function createKitchen(){
     const name=String(document.querySelector('#pancoonKitchenName')?.value||'My Kitchen').trim();
@@ -357,7 +357,7 @@
       inner+='<p>Sign in to connect this device to a private household kitchen. Existing local recipes will not be moved automatically.</p>'+
        '<form id="pancoonHouseholdLogin"><label>Email <input name="email" type="email" autocomplete="email" required></label>'+
        '<button class="primary" type="submit">Email me a sign-in link</button></form>'+ 
-       '<p class="hint">One-time setup: authorize <strong>https://pantryraccoon.netlify.app</strong> under Supabase Authentication → URL Configuration so secure email links return to PanCoon.</p>';
+       '<p class="hint">One-time setup: authorize <strong>https://pantryraccoon.netlify.app</strong> under Supabase Authentication → URL Configuration. Open each email sign-in link on the same device where you requested it.</p>';
     }else{
       inner+='<p>Signed in as <strong>'+esc(account.email)+'</strong>.</p>';
       if(!members.length){
