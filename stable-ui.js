@@ -353,45 +353,6 @@
     }
   }
 
-  function saveRecipeZineAfterCoreSave(form){
-    const existingId = form.elements.id?.value || '';
-    const recipeName = form.elements.name?.value.trim() || '';
-    const selectedFile = form.elements.zineUpload?.files?.[0] || null;
-    const path = normalizeZinePath(form.elements.zineAsset?.value || '');
-    const remove = Boolean(form.elements.zineRemove?.checked);
-
-    setTimeout(async () => {
-      const state = readState();
-      const recipes = Array.isArray(state.recipes) ? state.recipes : [];
-      const recipe = existingId
-        ? recipes.find(item => item.id === existingId)
-        : [...recipes].reverse().find(item => item.name === recipeName);
-      if (!recipe) return;
-      const store = window.PanCoonZineStore;
-      const zines = readZines();
-      const old = zines[recipe.id] || '';
-      try {
-        let next;
-        if (selectedFile) next = await store.put(recipe.id, selectedFile);
-        else if (remove) next = '';
-        else if (path) next = path;
-        else if (store?.isLocal(old)) next = old;
-        else next = '';
-        // Keep a previous uploaded image unless the person deliberately replaces or removes it.
-        if (!next && !remove && !selectedFile && !path && store?.isLocal(old)) next = old;
-        if (next) zines[recipe.id] = next;
-        else delete zines[recipe.id];
-        writeJson(ZINES_KEY, zines);
-        if (store?.isLocal(old) && old !== next) await store.remove(recipe.id);
-        decorateRecipeCards();
-        updateTonight();
-        window.dispatchEvent(new CustomEvent('pancoon:zine-changed', {detail:{recipeId:recipe.id}}));
-      } catch (error) {
-        alert('Recipe text saved, but the zine image could not be attached: ' + (error.message || 'Please try again.'));
-      }
-    }, 0);
-  }
-
   function decorateRecipeCards(){
     const zines = readZines();
     document.querySelectorAll('#recipeShelf .recipe-card').forEach(card => {
@@ -471,7 +432,6 @@
 
     document.addEventListener('submit', event => {
       captureInventorySubmit(event);
-      if (event.target.id === 'recipeForm') saveRecipeZineAfterCoreSave(event.target);
       if (event.target.id === 'recipeImportForm') setTimeout(decorateRecipeCards, 0);
     }, true);
 
@@ -524,6 +484,8 @@
         }, 0);
       }
     });
+
+    window.addEventListener('pancoon:zine-changed', () => { decorateRecipeCards(); updateTonight(); });
 
     window.addEventListener('storage', event => {
       if (event.key === STATE_KEY){
