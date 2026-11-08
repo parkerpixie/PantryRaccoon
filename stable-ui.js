@@ -49,7 +49,15 @@
       .inventory-result-note{font-size:11px;color:var(--muted);margin-left:4px}
       .zine-badge{display:inline-flex;align-items:center;width:max-content;margin:8px 0 0;padding:5px 8px;border-radius:999px;background:#f3e6cf;color:#76561f;font-size:10px;font-weight:900;letter-spacing:.02em}
       .recipe-card-actions [data-open-zine],.recipe-view-actions [data-open-zine]{border-color:#c8a66b;background:#fff9ed;color:#654b24}
+      .recipe-zine-field{display:grid;gap:12px;margin:12px 0;padding:14px;border:1px solid var(--line);border-radius:14px;background:#fff9f2}
+      .recipe-zine-field label{display:grid;gap:6px;font-weight:750}
       .recipe-zine-field small{font-weight:500;color:var(--muted);line-height:1.4}
+      .recipe-zine-field input[type=file]{display:block;width:100%;padding:10px;background:white;border:1px solid var(--line);border-radius:10px}
+      .recipe-zine-field .zine-remove-label{display:flex;align-items:center;gap:9px;font-weight:650}
+      .recipe-zine-field .zine-remove-label input{width:auto}
+      .recipe-zine-field .zine-field-status{font-size:12px;color:var(--muted);margin:0}
+      .recipe-zine-field .zine-field-thumb{display:flex;align-items:center;gap:12px}
+      .recipe-zine-field .zine-field-thumb img{width:70px;max-height:94px;object-fit:cover;object-position:top;border-radius:8px;border:1px solid var(--line)}
       .recipe-zine-preview{display:grid;grid-template-columns:minmax(150px,210px) minmax(0,1fr);gap:20px;align-items:center;margin:22px 0 26px;padding:16px;border:1px solid var(--line);border-radius:18px;background:#f7efe3}
       .recipe-zine-preview button{display:block;width:100%;padding:0;border:0;background:transparent;cursor:pointer;border-radius:12px;overflow:hidden;box-shadow:0 10px 28px rgba(54,42,49,.16)}
       .recipe-zine-preview img{display:block;width:100%;height:auto;max-height:330px;object-fit:cover;object-position:top;background:#201a1b}
@@ -297,6 +305,7 @@
     const text = String(value || '').trim();
     if (!text) return '';
     if (/^https?:\/\//i.test(text)) return text;
+    if (window.PanCoonZineStore?.isLocal(text)) return text;
     if (text.startsWith('/')) return text;
     if (text.startsWith('assets/')) return `/${text}`;
     return `/assets/${text}`;
@@ -305,39 +314,81 @@
   function ensureZineField(){
     const form = document.getElementById('recipeForm');
     if (!form || form.elements.zineAsset) return;
-    const label = document.createElement('label');
-    label.className = 'recipe-zine-field';
-    label.innerHTML = `Recipe Zine asset<input name="zineAsset" placeholder="assets/My Recipe Zine.png"><small>Optional illustration: provide a previously saved image URL or asset path.</small>`;
+    const section = document.createElement('div');
+    section.className = 'recipe-zine-field';
+    section.innerHTML = `
+      <label>Recipe Zine image URL (optional)
+        <input name="zineAsset" placeholder="assets/My Recipe Zine.png">
+        <small>For existing images on a website or in the app assets folder.</small>
+      </label>
+      <label>Upload a zine from your device
+        <input name="zineUpload" type="file" accept="image/png,image/jpeg,image/webp">
+        <small>PNG, JPEG or WebP, up to 15 MB. Saved privately in this browser, attached only to your recipe. It does not automatically sync between devices.</small>
+      </label>
+      <label class="zine-remove-label"><input name="zineRemove" type="checkbox"> Remove existing zine</label>
+      <div class="zine-field-thumb" id="recipeZineFieldPreview" hidden></div>
+      <p class="zine-field-status" id="recipeZineFieldStatus"></p>`;
     const notesLabel = form.elements.notes?.closest('label');
-    if (notesLabel) form.insertBefore(label, notesLabel);
-    else form.appendChild(label);
+    if (notesLabel) form.insertBefore(section, notesLabel);
+    else form.appendChild(section);
   }
 
   function populateZineField(recipeId){
     ensureZineField();
-    const input = document.getElementById('recipeForm')?.elements.zineAsset;
-    if (!input) return;
-    input.value = recipeId ? zinePathFor(recipeId) : '';
+    const form = document.getElementById('recipeForm');
+    if (!form) return;
+    const current = recipeId ? zinePathFor(recipeId) : '';
+    const local = window.PanCoonZineStore?.isLocal(current);
+    form.elements.zineAsset.value = local ? '' : current;
+    form.elements.zineUpload.value = '';
+    form.elements.zineRemove.checked = false;
+    const status = document.getElementById('recipeZineFieldStatus');
+    if (status) status.textContent = local
+      ? 'This recipe already has a zine stored in this browser. Choose a new image to replace it.'
+      : current ? 'An existing zine URL is attached. Upload an image to replace it.' : 'No zine attached yet.';
+    const preview = document.getElementById('recipeZineFieldPreview');
+    if (preview) {
+      preview.hidden = !current;
+      preview.innerHTML = current ? `<img src="${esc(current)}" alt="Current recipe zine"><small>Current zine</small>` : '';
+    }
   }
 
   function saveRecipeZineAfterCoreSave(form){
     const existingId = form.elements.id?.value || '';
     const recipeName = form.elements.name?.value.trim() || '';
+    const selectedFile = form.elements.zineUpload?.files?.[0] || null;
     const path = normalizeZinePath(form.elements.zineAsset?.value || '');
+    const remove = Boolean(form.elements.zineRemove?.checked);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       const state = readState();
       const recipes = Array.isArray(state.recipes) ? state.recipes : [];
       const recipe = existingId
         ? recipes.find(item => item.id === existingId)
         : [...recipes].reverse().find(item => item.name === recipeName);
       if (!recipe) return;
+      const store = window.PanCoonZineStore;
       const zines = readZines();
-      if (path) zines[recipe.id] = path;
-      else delete zines[recipe.id];
-      writeJson(ZINES_KEY, zines);
-      decorateRecipeCards();
-      updateTonight();
+      const old = zines[recipe.id] || '';
+      try {
+        let next;
+        if (selectedFile) next = await store.put(recipe.id, selectedFile);
+        else if (remove) next = '';
+        else if (path) next = path;
+        else if (store?.isLocal(old)) next = old;
+        else next = '';
+        // Keep a previous uploaded image unless the person deliberately replaces or removes it.
+        if (!next && !remove && !selectedFile && !path && store?.isLocal(old)) next = old;
+        if (next) zines[recipe.id] = next;
+        else delete zines[recipe.id];
+        writeJson(ZINES_KEY, zines);
+        if (store?.isLocal(old) && old !== next) await store.remove(recipe.id);
+        decorateRecipeCards();
+        updateTonight();
+        window.dispatchEvent(new CustomEvent('pancoon:zine-changed', {detail:{recipeId:recipe.id}}));
+      } catch (error) {
+        alert('Recipe text saved, but the zine image could not be attached: ' + (error.message || 'Please try again.'));
+      }
     }, 0);
   }
 
@@ -348,6 +399,11 @@
       card.querySelector('.zine-badge')?.remove();
       card.querySelector('[data-open-zine]')?.remove();
       if (!id || !zines[id]) return;
+      const image = card.querySelector('.recipe-card-image');
+      if (image) {
+        image.innerHTML = `<img src="${esc(zines[id])}" alt="${esc(card.querySelector('h3')?.textContent || 'Recipe')} zine preview">`;
+        card.classList.add('has-zine');
+      }
 
       const badge = document.createElement('span');
       badge.className = 'zine-badge';
@@ -430,6 +486,11 @@
 
     document.addEventListener('change', event => {
       if (event.target.matches('[data-plan-choice],[data-plan-cook]')) setTimeout(updateTonight, 0);
+      if (event.target.name === 'zineUpload') {
+        const file = event.target.files?.[0];
+        const status = document.getElementById('recipeZineFieldStatus');
+        if (status && file) status.textContent = file.name + ' selected. It will be attached when you save the recipe.';
+      }
     });
 
     document.addEventListener('click', event => {
