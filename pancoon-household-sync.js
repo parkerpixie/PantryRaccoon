@@ -356,7 +356,8 @@
     if(!account){
       inner+='<p>Sign in to connect this device to a private household kitchen. Existing local recipes will not be moved automatically.</p>'+
        '<form id="pancoonHouseholdLogin"><label>Email <input name="email" type="email" autocomplete="email" required></label>'+
-       '<button class="primary" type="submit">Email me a sign-in link</button></form>';
+       '<button class="primary" type="submit">Email me a sign-in link</button></form>'+ 
+       '<p class="hint">One-time setup: authorize <strong>https://pantryraccoon.netlify.app</strong> under Supabase Authentication → URL Configuration so secure email links return to PanCoon.</p>';
     }else{
       inner+='<p>Signed in as <strong>'+esc(account.email)+'</strong>.</p>';
       if(!members.length){
