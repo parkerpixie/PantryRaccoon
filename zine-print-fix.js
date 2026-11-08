@@ -62,7 +62,10 @@
     const original = zineFor(recipeId);
     if (!original) return;
     let src = original;
-    if (original.startsWith('pancoon-private://')){
+    if (window.PanCoonZineStore?.isLocal(original)) {
+      try { src = await window.PanCoonZineStore.resolve(original); }
+      catch (_) { alert('This zine is not available in this browser yet.'); return; }
+    } else if (original.startsWith('pancoon-private://')){
       try {
         src = await window.PanCoonPrivateMedia.resolve(original);
       } catch (_) {
