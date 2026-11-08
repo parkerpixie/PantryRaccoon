@@ -2,10 +2,10 @@
   'use strict';
   const cfg=window.PanCoonHouseholdConfig||{};
   if(!cfg.enabled)return;
-  const STATE='pantry-raccoon:v1',ZINES='pantry-raccoon:recipe-zines:v1',SETTINGS='pancoon:settings:v1';
+  const STATE='pantry-raccoon:v1',ZINES='pantry-raccoon:recipe-zines:v1',SETTINGS='pancoon:settings:v1',NOTES='pantry-raccoon:inventory-notes:v1',META='pantry-raccoon:inventory-meta:v2';
   const CHOSEN='pancoon:household-id:v1', BASELINE='pancoon:cloud-baseline:v1:', PREFIX='pancoon-shared://',BUCKET='pancoon-household-zines';
   const COLLECTIONS=['recipes','plan','inventory','groceryReview','groceryDismissed','groceryExtras','squirrelQueue','settings','zines'];
-  const tracked=new Set([STATE,ZINES,SETTINGS]);
+  const tracked=new Set([STATE,ZINES,SETTINGS,NOTES,META]);
   let client, account=null,household=null, members=[], remote=new Map(), baseline=new Map();
   let connected=false, applying=false, pushing=false, loading=false, blocked=false, channel=null, pollTimer=null, pushTimer=null, pullTimer=null, initPromise=null;
   const mediaCache=new Map(), mediaPending=new Map();
@@ -62,6 +62,8 @@
     for(const k of ['groceryExtras','squirrelQueue'])
       for(const item of s[k]||[])if(item?.id)add(k,item.id,item);
     add('settings','main',read(SETTINGS,{}));
+    add('settings','inventory-notes',read(NOTES,{}));
+    add('settings','inventory-meta',read(META,{}));
     for(const [id,url] of Object.entries(read(ZINES,{})))if(url)add('zines',id,url);
     return result;
   }
@@ -73,7 +75,7 @@
   function mapToKitchen(values){
     const result={version:3,recipes:[],plan:{},inventories:{pantry:[],fridge:[],freezer:[]},
       groceryReview:{},groceryDismissed:{},groceryExtras:[],squirrelQueue:[]};
-    let settings={};const zines={};
+    let settings={},notes={},meta={};const zines={};
     for(const [key,entry] of values){
       const val=entry.content;if(val===null||val===undefined)continue;
       let [kind,id]=JSON.parse(key);
@@ -82,10 +84,12 @@
       else if(kind==='inventory'&&result.inventories[val.kind]&&val.item)result.inventories[val.kind].push(val.item);
       else if(kind==='groceryReview'||kind==='groceryDismissed')result[kind][id]=val;
       else if(kind==='groceryExtras'||kind==='squirrelQueue')result[kind].push(val);
-      else if(kind==='settings')settings=val;
+      else if(kind==='settings'&&id==='main')settings=val;
+      else if(kind==='settings'&&id==='inventory-notes')notes=val;
+      else if(kind==='settings'&&id==='inventory-meta')meta=val;
       else if(kind==='zines')zines[id]=val;
     }
-    return {state:result,settings,zines};
+    return {state:result,settings,notes,meta,zines};
   }
   function applyCloud(){
     if(!connected)return;
@@ -95,9 +99,12 @@
       localStorage.setItem(STATE,JSON.stringify(value.state));
       localStorage.setItem(SETTINGS,JSON.stringify(value.settings));
       localStorage.setItem(ZINES,JSON.stringify(value.zines));
+      localStorage.setItem(NOTES,JSON.stringify(value.notes));
+      localStorage.setItem(META,JSON.stringify(value.meta));
       baseline=flatLocal();
       saveBaseline();
       window.PanCoonReloadFromStorage?.();
+      window.dispatchEvent(new Event('pancoon:cloud-refresh'));
       window.dispatchEvent(new Event('pancoon:settings-changed'));
       window.dispatchEvent(new Event('pancoon:zine-changed'));
     }finally{applying=false;}
