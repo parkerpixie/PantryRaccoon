@@ -3,12 +3,13 @@
   const cfg=window.PanCoonHouseholdConfig||{};
   if(!cfg.enabled)return;
   const STATE='pantry-raccoon:v1',ZINES='pantry-raccoon:recipe-zines:v1',SETTINGS='pancoon:settings:v1';
-  const CHOSEN='pancoon:household-id:v1',PREFIX='pancoon-shared://',BUCKET='pancoon-household-zines';
+  const CHOSEN='pancoon:household-id:v1', BASELINE='pancoon:cloud-baseline:v1:', PREFIX='pancoon-shared://',BUCKET='pancoon-household-zines';
   const COLLECTIONS=['recipes','plan','inventory','groceryReview','groceryDismissed','groceryExtras','squirrelQueue','settings','zines'];
   const tracked=new Set([STATE,ZINES,SETTINGS]);
   let client, account=null,household=null, members=[], remote=new Map(), baseline=new Map();
   let connected=false, applying=false, pushing=false, loading=false, blocked=false, channel=null, pollTimer=null, pushTimer=null, pullTimer=null, initPromise=null;
   const mediaCache=new Map(), mediaPending=new Map();
+  let lastStatus='Local images sync once imported into a household.',lastStatusBad=false;
 
   const read=(key,def)=>{try{return JSON.parse(localStorage.getItem(key)||'null')||def;}catch{return def;}};
   const encode=(collection,id)=>JSON.stringify([collection,id]);
@@ -17,7 +18,17 @@
   const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
   const isShared=x=>String(x||'').startsWith(PREFIX);
   const checkPath=x=>{const path=String(x||'').slice(PREFIX.length);if(!/^[a-f0-9-]{36}\/[a-zA-Z0-9_/-]+\.(png|jpg|webp)$/.test(path))throw Error('Invalid cloud image reference');return path;};
-  function notify(msg,bad=false){let node=document.getElementById('pancoonHouseholdStatus');if(node){node.textContent=msg;node.style.color=bad?'#a33236':'';node.setAttribute('role',bad?'alert':'status');}}
+  function notify(msg,bad=false){lastStatus=msg;lastStatusBad=bad;let node=document.getElementById('pancoonHouseholdStatus');if(node){node.textContent=msg;node.style.color=bad?'#a33236':'';node.setAttribute('role',bad?'alert':'status');}}
+  function saveBaseline(){
+    if(!connected||!household)return;
+    const rows=[...baseline].map(([key,content])=>[key,content,remote.get(key)?.revision||0]);
+    localStorage.setItem(BASELINE+household,JSON.stringify(rows));
+  }
+  function readBaseline(id){
+    try{const rows=JSON.parse(localStorage.getItem(BASELINE+id)||'null');
+      return Array.isArray(rows)?new Map(rows.map(([key,content,revision])=>[key,{content,revision}])):null;
+    }catch(_){return null;}
+  }
   async function sdk(){
     if(client)return client;
     if(initPromise)return initPromise;
@@ -85,6 +96,7 @@
       localStorage.setItem(SETTINGS,JSON.stringify(value.settings));
       localStorage.setItem(ZINES,JSON.stringify(value.zines));
       baseline=flatLocal();
+      saveBaseline();
       window.PanCoonReloadFromStorage?.();
       window.dispatchEvent(new Event('pancoon:settings-changed'));
       window.dispatchEvent(new Event('pancoon:zine-changed'));
@@ -160,6 +172,7 @@
         }
         const row=await put(k,value,remote.get(k)?.revision||0);
         remote.set(k,row);baseline.set(k,value);
+        saveBaseline();
       }
       notify('All changes saved to your household cloud.');
     }catch(error){
@@ -194,12 +207,39 @@
     clearInterval(pollTimer);
     pollTimer=setInterval(()=>{if(document.visibilityState!=='hidden')pull();},30000);
   }
-  async function connect(hid,force=false){
+  async function connect(hid,force=false,resuming=false){
     household=hid;
     await fetchRemote();
     if(originalDataCount()>0&&!force&&!localStorage.getItem(CHOSEN)){
-      render();notify('Your Mac has existing recipes. Choose “Import this device” to preserve them, or download a backup before switching to this household.',false);
+      render();notify('This device has local recipes. Import them before switching to the household cloud.',false);
       return;
+    }
+    if(resuming){
+      const saved=readBaseline(hid);
+      if(!saved && originalDataCount()>0){
+        render();notify('Paused: this device has recipes but no verified cloud baseline. Make a backup, then choose Import this device or Use household cloud.',true);
+        return;
+      }
+      if(saved){
+        const local=flatLocal(),all=new Set([...local.keys(),...saved.keys()]);
+        const pending=[...all].filter(k=>!equal(local.get(k)??null,saved.get(k)?.content??null));
+        const conflicts=pending.filter(k=>{
+          const prior=saved.get(k);
+          const cloud=remote.get(k);
+          return (cloud?.revision||0)!==(prior?.revision||0);
+        });
+        if(conflicts.length){
+          render();notify('Sync paused: '+conflicts.length+' item(s) changed on both this device and the cloud. Local data is preserved; review before replacing.',true);
+          return;
+        }
+        baseline=new Map([...saved].map(([key,row])=>[key,row.content]));
+        connected=true;
+        if(pending.length){
+          await push();
+          if(blocked)return;
+          await fetchRemote();
+        }
+      }
     }
     connected=true;applying=true;
     try{localStorage.setItem(CHOSEN,hid);}finally{applying=false;}
@@ -266,7 +306,7 @@
     members=data||[];
     const selected=localStorage.getItem(CHOSEN);
     const active=members.find(x=>x.household_id===selected);
-    if(active)await connect(active.household_id,true);
+    if(active)await connect(active.household_id,true,true);
     else{stop();render();}
   }
   async function login(email){
@@ -340,7 +380,7 @@
         '<button type="button" class="secondary" id="pancoonJoinKitchen">Join kitchen</button></div>'+
         '<button type="button" class="secondary" id="pancoonSignOut" style="margin-top:10px">Sign out</button>';
     }
-    inner+='<p id="pancoonHouseholdStatus" class="hint" role="status">Local images are not synced unless imported into the household cloud.</p>';
+    inner+='<p id="pancoonHouseholdStatus" class="hint" role="'+(lastStatusBad?'alert':'status')+'" style="'+(lastStatusBad?'color:#a33236':'')+'">'+esc(lastStatus)+'</p>';
     card.innerHTML=inner;
   }
   async function authenticated(){
