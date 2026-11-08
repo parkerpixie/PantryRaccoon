@@ -386,6 +386,12 @@
     save();renderPlan();renderGrocery();
   }
 
+  // Allows verified household records to refresh the current UI without erasing the open browser session.
+  window.PanCoonReloadFromStorage = function(){
+    state=load();
+    renderPlan();renderRecipes();renderAllInventory();renderGrocery();
+  };
+
   function start(){
     initializeKitchen(); inventoryFormOptions(); renderPlan();renderRecipes();renderAllInventory();renderGrocery();route((location.hash||'#plan').slice(1));
     window.addEventListener('pancoon:settings-changed',()=>{renderPlan();renderGrocery();route((location.hash||'#plan').slice(1));});
