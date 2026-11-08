@@ -291,6 +291,10 @@
       await fetchRemote();
       for(const [key,original] of local){
         if(remote.has(key)){
+          const [kind]=JSON.parse(key);
+          // A previous import may have finished uploading a zine before the rest stopped.
+          // Treat its verified private cloud copy as already imported on a retry.
+          if(kind==='zines'&&isShared(remote.get(key).content)&&window.PanCoonZineStore?.isLocal(original))continue;
           if(!equal(remote.get(key).content,original))throw Error('A different cloud copy exists for '+key+'. Nothing on this device was erased.');
           continue;
         }
