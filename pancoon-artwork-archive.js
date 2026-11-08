@@ -67,7 +67,7 @@
   function sourceUrl(raw) {
     const source = String(raw || '').trim();
     if (!source) return null;
-    if (source.startsWith('pancoon-private://')) return source;
+    if (source.startsWith('pancoon-private://') || source.startsWith('pancoon-local-zine://')) return source;
     if (source.startsWith('data:image/')) return source;
     try {
       const url = new URL(source, location.origin);
@@ -116,6 +116,8 @@
         try {
           const finalUrl = url.startsWith('pancoon-private://')
             ? await window.PanCoonPrivateMedia.resolve(url)
+            : url.startsWith('pancoon-local-zine://')
+            ? await window.PanCoonZineStore.resolve(url)
             : url;
           const response = await fetch(finalUrl, {credentials:'same-origin',cache:'no-store'});
           if (!response.ok) throw new Error('HTTP ' + response.status);
