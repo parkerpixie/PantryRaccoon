@@ -99,7 +99,8 @@
   async function resolve(ref){
     if(!isShared(ref))return ref;
     const path=checkPath(ref);
-    if(!household||!path.startsWith(household+'/'))throw Error('Not a member of this image’s kitchen');
+    const active=household||localStorage.getItem(CHOSEN);
+    if(!active||!path.startsWith(active+'/'))throw Error('Not a member of this image’s kitchen');
     if(mediaCache.has(path))return mediaCache.get(path);
     if(mediaPending.has(path))return mediaPending.get(path);
     const task=(async()=>{
