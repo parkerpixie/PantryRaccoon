@@ -29,6 +29,8 @@
     </section>
   </main>
   <script src="/pancoon-zine-store.js"></script>
+  <script src="/pancoon-household-config.js"></script>
+  <script src="/pancoon-household-sync.js"></script>
   <script>
     (() => {
       const STATE_KEY='pantry-raccoon:v1';
@@ -48,7 +50,7 @@
         return;
       }
       const img=document.createElement('img');
-      Promise.resolve(window.PanCoonZineStore?.resolve(path) || path).then(src => { img.src=src; }).catch(() => { paper.innerHTML='<div class="empty"><h2>Zine unavailable on this device.</h2><p>This image was saved in another browser. To see it here, set up household syncing or reupload it on this device.</p><a href="/#recipes">Back to Recipes</a></div>'; });
+      Promise.resolve(window.PanCoonSharedMedia?.isShared(path)?window.PanCoonSharedMedia.resolve(path):window.PanCoonZineStore?.resolve(path) || path).then(src => { img.src=src; }).catch(() => { paper.innerHTML='<div class="empty"><h2>Zine unavailable on this device.</h2><p>This image was saved in another browser. To see it here, set up household syncing or reupload it on this device.</p><a href="/#recipes">Back to Recipes</a></div>'; });
       img.alt=recipe?.name?`${recipe.name} recipe zine`:'PanCoon recipe zine';
       img.decoding='async';
       img.addEventListener('error',()=>{paper.innerHTML='<div class="empty"><h2>Zine image not found.</h2><p>The recipe has a zine path saved, but that image could not be loaded. Check the asset filename in Edit Recipe.</p><a href="/#recipes">Back to Recipes</a></div>';},{once:true});
