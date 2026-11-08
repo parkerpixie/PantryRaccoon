@@ -158,12 +158,14 @@
     }).join('');
   }
   function renderRecipes(){
+    let zines={};
+    try{zines=JSON.parse(localStorage.getItem('pantry-raccoon:recipe-zines:v1')||'{}')||{};}catch(_){}
     const q=(document.getElementById('recipeSearch')?.value||'').trim().toLowerCase();
     const list=[...state.recipes].filter(r=>!q||[r.name,r.createdBy,r.category].some(v=>String(v||'').toLowerCase().includes(q))).sort((a,b)=>a.name.localeCompare(b.name));
-    document.getElementById('recipeShelf').innerHTML=list.length?list.map(r=>`<article class="recipe-card">
-      <div class="recipe-card-image">${r.sourceImageUrl?`<img src="${esc(r.sourceImageUrl)}" alt="">`:'<span>🍲</span>'}</div>
+    document.getElementById('recipeShelf').innerHTML=list.length?list.map(r=>`<article class="recipe-card${zines[r.id]?' has-zine':''}">
+      <div class="recipe-card-image">${(zines[r.id]||r.sourceImageUrl)?`<img src="${esc(zines[r.id]||r.sourceImageUrl)}" alt="${esc(r.name)} thumbnail" loading="lazy">`:'<span>🍲</span>'}</div>
       <div class="recipe-card-copy"><p class="eyebrow">${esc(r.category||'Recipe')}</p><h3>${esc(r.name)}</h3><p>${r.createdBy?`By ${esc(r.createdBy)} · `:''}${r.totalMinutes||'?'} min · ${(r.ingredients||[]).length} ingredients</p>
-      <div class="recipe-card-actions"><button data-view-recipe="${esc(r.id)}">View</button><button data-edit-recipe="${esc(r.id)}">Edit</button><button data-print-recipe="${esc(r.id)}">Print</button><button data-email-recipe="${esc(r.id)}">Email</button>${r.url?`<a href="${esc(r.url)}" target="_blank" rel="noopener">Source</a>`:''}</div></div>
+      <div class="recipe-card-actions"><button data-view-recipe="${esc(r.id)}">View</button><button data-edit-recipe="${esc(r.id)}">Edit</button><button data-upload-zine="${esc(r.id)}">${zines[r.id]?'Replace zine':'Add zine'}</button><button data-print-recipe="${esc(r.id)}">Print</button><button data-email-recipe="${esc(r.id)}">Email</button>${r.url?`<a href="${esc(r.url)}" target="_blank" rel="noopener">Source</a>`:''}</div></div>
     </article>`).join(''):'<div class="empty">No recipes match.</div>';
   }
 
