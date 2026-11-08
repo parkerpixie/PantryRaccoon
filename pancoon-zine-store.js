@@ -14,10 +14,10 @@
   function isLocal(value) { return String(value || '').startsWith(PREFIX); }
   function recipeId(value) {
     if (!isLocal(value)) return '';
-    try { return decodeURIComponent(String(value).slice(PREFIX.length)); }
+    try { return decodeURIComponent(String(value).slice(PREFIX.length).split('?')[0]); }
     catch (_) { return ''; }
   }
-  function reference(id) { return PREFIX + encodeURIComponent(String(id)); }
+  function reference(id, version = '') { return PREFIX + encodeURIComponent(String(id)) + (version ? '?v=' + encodeURIComponent(version) : ''); }
 
   function database() {
     if (!('indexedDB' in window)) return Promise.reject(new Error('This browser does not support local image storage.'));
@@ -84,7 +84,8 @@
       throw new Error('Could not verify the saved image. Please retry.');
     invalidate(id);
     window.dispatchEvent(new CustomEvent('pancoon:zine-changed', {detail:{recipeId:id}}));
-    return reference(id);
+    // A new reference changes the DOM src for replacements, preventing stale zine thumbnails.
+    return reference(id, crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
   }
 
   async function remove(id) {
