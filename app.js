@@ -174,13 +174,71 @@
     f.elements.url.value=recipe?.url||''; f.elements.ingredients.value=(recipe?.ingredients||[]).join('\n'); f.elements.instructions.value=(recipe?.instructions||[]).join('\n'); f.elements.notes.value=recipe?.notes||'';
     document.getElementById('recipeDialogTitle').textContent=recipe?`Edit ${recipe.name}`:'Add family recipe'; document.getElementById('recipeDialog').showModal();
   }
-  function saveRecipeForm(form){
-    const existing=state.recipes.find(r=>r.id===form.elements.id.value);
-    const recipe={...(existing||{}),id:existing?.id||uid(),name:form.elements.name.value.trim(),createdBy:form.elements.createdBy.value.trim(),category:existing?.category||'Dinner',
-      prepMinutes:Number(form.elements.prepMinutes.value)||0,cookMinutes:Number(form.elements.cookMinutes.value)||0,servings:form.elements.servings.value.trim(),url:form.elements.url.value.trim(),
-      ingredients:lines(form.elements.ingredients.value),instructions:lines(form.elements.instructions.value),notes:form.elements.notes.value.trim(),updatedAt:new Date().toISOString(),createdAt:existing?.createdAt||new Date().toISOString()};
-    recipe.totalMinutes=recipe.prepMinutes+recipe.cookMinutes||existing?.totalMinutes||0;
-    state.recipes=[recipe,...state.recipes.filter(r=>r.id!==recipe.id)]; save(); form.closest('dialog').close(); renderRecipes(); renderPlan(); renderGrocery(); toast('Recipe saved.',recipe.name);
+  async function saveRecipeForm(form){
+    if(form.dataset.saving==='true')return;
+    const submit=form.querySelector('[type="submit"]'), previousLabel=submit?.textContent||'Save recipe';
+    form.dataset.saving='true';
+    if(submit){submit.disabled=true;submit.textContent='Saving recipe & zine…';}
+    const notice=document.getElementById('recipeZineFieldStatus');
+    const oldKitchen=localStorage.getItem(STORAGE_KEY);
+    const oldZinesRaw=localStorage.getItem('pantry-raccoon:recipe-zines:v1');
+    try{
+      const existing=state.recipes.find(r=>r.id===form.elements.id.value);
+      const id=existing?.id||uid();
+      const file=form.elements.zineUpload?.files?.[0]||null;
+      const removeZine=Boolean(form.elements.zineRemove?.checked);
+      const newPath=String(form.elements.zineAsset?.value||'').trim();
+      const store=window.PanCoonZineStore;
+      let zines={};
+      try{zines=JSON.parse(oldZinesRaw||'{}')||{};}catch(_){zines={};}
+      const previousZine=zines[id]||'';
+      let nextZine=previousZine;
+
+      if(file){
+        if(!store)throw new Error('Image storage is not available. Reload the app and try again.');
+        if(notice)notice.textContent='Saving and verifying '+file.name+'…';
+        nextZine=await store.put(id,file);
+        // The record must be retrievable after IndexedDB transaction completion.
+        await store.resolve(nextZine);
+      }else if(removeZine){
+        nextZine='';
+      }else if(newPath){
+        nextZine=/^https?:\/\//i.test(newPath)||newPath.startsWith('/')||newPath.startsWith('pancoon-private://')
+          ?newPath :newPath.startsWith('assets/')?'/'+newPath:'/assets/'+newPath;
+      }
+
+      const recipe={...(existing||{}),id,name:form.elements.name.value.trim(),createdBy:form.elements.createdBy.value.trim(),category:existing?.category||'Dinner',
+        prepMinutes:Number(form.elements.prepMinutes.value)||0,cookMinutes:Number(form.elements.cookMinutes.value)||0,servings:form.elements.servings.value.trim(),url:form.elements.url.value.trim(),
+        ingredients:lines(form.elements.ingredients.value),instructions:lines(form.elements.instructions.value),notes:form.elements.notes.value.trim(),updatedAt:new Date().toISOString(),createdAt:existing?.createdAt||new Date().toISOString()};
+      recipe.totalMinutes=recipe.prepMinutes+recipe.cookMinutes||existing?.totalMinutes||0;
+      state.recipes=[recipe,...state.recipes.filter(r=>r.id!==recipe.id)];
+      save();
+      if(nextZine)zines[id]=nextZine;else delete zines[id];
+      localStorage.setItem('pantry-raccoon:recipe-zines:v1',JSON.stringify(zines));
+
+      // Retire old blobs only after the recipe and new zine reference are safely saved.
+      if(store?.isLocal(previousZine)&&previousZine!==nextZine){
+        try{await store.remove(id);}catch(error){console.warn('Old zine cleanup deferred:',error);}
+      }
+      form.closest('dialog').close();
+      renderRecipes();renderPlan();renderGrocery();
+      window.dispatchEvent(new CustomEvent('pancoon:zine-changed',{detail:{recipeId:id}}));
+      toast(file?'Recipe and zine saved.':'Recipe saved.',recipe.name);
+    }catch(error){
+      // If a storage write fails, preserve the user's pre-save recipe collection.
+      try{
+        if(oldKitchen!==null)localStorage.setItem(STORAGE_KEY,oldKitchen);
+        if(oldZinesRaw!==null)localStorage.setItem('pantry-raccoon:recipe-zines:v1',oldZinesRaw);
+        state=load();
+      }catch(_){}
+      const msg=error?.message||'The image could not be saved.';
+      if(notice){notice.textContent='Save failed: '+msg;notice.setAttribute('role','alert');}
+      toast('Save failed.',msg);
+      console.error('PanCoon recipe/zine save:',error);
+    }finally{
+      delete form.dataset.saving;
+      if(submit){submit.disabled=false;submit.textContent=previousLabel;}
+    }
   }
   function viewRecipe(recipe){
     if(!recipe)return;
