@@ -446,6 +446,7 @@
       catch(error){notify(error.message,true);}
     });
     window.addEventListener('pancoon:settings-changed',render);
+    window.addEventListener('pancoon:settings-rendered',render);
     document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pull();});
     render();
     sdk().then(c=>{
