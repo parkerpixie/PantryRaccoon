@@ -322,9 +322,15 @@
   }
   async function login(email){
     const c=await sdk();
-    const {error}=await c.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+'/#settings'}});
-    if(error)throw error;
-    notify('Check your email and open the secure sign-in link on this same device. If it opens the wrong address, check Auth → URL Configuration.');
+    const {error}=await c.auth.signInWithOtp({
+      email,
+      options:{emailRedirectTo:location.origin+'/pancoon-auth.html'}
+    });
+    if(error){
+      if(error.status===429)throw Error('Supabase has temporarily reached its email sending limit. Do not keep requesting links. Your recipes are safe; try again after the email limit resets.');
+      throw error;
+    }
+    notify('Sign-in email sent. Open the NEWEST link in Chrome on this Mac, the same browser where you requested it.');
   }
   async function createKitchen(){
     const name=String(document.querySelector('#pancoonKitchenName')?.value||'My Kitchen').trim();
@@ -368,7 +374,7 @@
       inner+='<p>Sign in to connect this device to a private household kitchen. Existing local recipes will not be moved automatically.</p>'+
        '<form id="pancoonHouseholdLogin"><label>Email <input name="email" type="email" autocomplete="email" required></label>'+
        '<button class="primary" type="submit">Email me a sign-in link</button></form>'+ 
-       '<p class="hint">One-time setup: authorize <strong>https://pantryraccoon.netlify.app</strong> under Supabase Authentication → URL Configuration. Open each email sign-in link on the same device where you requested it.</p>';
+       '<p class="hint">Email links are single-use. Open the newest sign-in link on the same device and browser where you requested it. If email requests are limited, do not keep retrying.</p>';
     }else{
       inner+='<p>Signed in as <strong>'+esc(account.email)+'</strong>.</p>';
       if(!members.length){
@@ -418,7 +424,11 @@
     document.addEventListener('submit',async e=>{
       if(e.target.id!=='pancoonHouseholdLogin')return;
       e.preventDefault();
-      try{await login(e.target.elements.email.value.trim());}catch(error){notify(error.message,true);}
+      const submit=e.target.querySelector('button[type="submit"]');
+      if(submit){submit.disabled=true;submit.textContent='Sending…';}
+      try{await login(e.target.elements.email.value.trim());}
+      catch(error){notify(error.message,true);}
+      finally{if(submit?.isConnected){submit.disabled=false;submit.textContent='Email me a sign-in link';}}
     });
     document.addEventListener('click',async e=>{
       const a=e.target.closest('button[id]');if(!a)return;
