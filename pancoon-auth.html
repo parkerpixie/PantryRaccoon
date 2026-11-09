@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Signing in · PanCoon</title>
+  <style>
+    :root {color-scheme:light; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
+    body{min-height:100vh;margin:0;background:#f6f1e9;color:#282536;display:grid;place-items:center;padding:20px;box-sizing:border-box;}
+    main{background:#fffaf3;padding:28px;border:1px solid #e7dcd3;border-radius:20px;box-shadow:0 8px 26px #0001;max-width:480px;width:100%;box-sizing:border-box}
+    h1{margin:0 0 14px;font-size:25px}p{line-height:1.5}a{color:#643c63;font-weight:700}
+    #status{color:#5b5960}#error{color:#992b35;display:none}
+  </style>
+</head>
+<body>
+<main>
+  <h1>🦝 Connecting your PanCoon kitchen</h1>
+  <p id="status" role="status">Checking your secure sign-in…</p>
+  <p id="error" role="alert"></p>
+  <p><a href="/#settings">Return to PanCoon Settings</a></p>
+  <small>Your existing recipes and artwork are not changed by signing in.</small>
+</main>
+<script src="/pancoon-household-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0"></script>
+<script>
+(async()=>{
+  'use strict';
+  const status=document.querySelector('#status');
+  const errorBox=document.querySelector('#error');
+  function fail(message){
+    status.textContent='Sign-in has not finished.';
+    errorBox.textContent=message;
+    errorBox.style.display='block';
+  }
+  const params=new URLSearchParams(location.search);
+  const code=params.get('code');
+  const problem=params.get('error_description')||params.get('error');
+  // Remove the short-lived authorization code from browser history and referrers.
+  history.replaceState(null,'',location.pathname);
+  if(problem)return fail('The email link could not be verified. '+problem+'. Return to Settings and request a new link when emails are available.');
+  if(!code)return fail('This page needs a fresh PanCoon email sign-in link. Open Settings to request one.');
+  if(!window.supabase?.createClient || !window.PanCoonHouseholdConfig?.enabled)
+    return fail('The secure sign-in service could not load. Check your connection and try opening the link again.');
+  try{
+    const cfg=window.PanCoonHouseholdConfig;
+    // Manual exchange avoids a race with PanCoon's page router. PKCE verifier
+    // is stored by the browser that originally requested this email link.
+    const client=window.supabase.createClient(cfg.url,cfg.publishableKey,{
+      auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false,flowType:'pkce'}
+    });
+    const result=await client.auth.exchangeCodeForSession(code);
+    if(result.error)throw result.error;
+    const check=await client.auth.getUser();
+    if(check.error||!check.data?.user)throw Error('Your login session could not be verified.');
+    status.textContent='Sign-in confirmed! Opening your kitchen…';
+    location.replace('/#settings');
+  }catch(err){
+    fail('This one-time link could not complete sign-in. It may have already been used, or it was opened in a different browser than the one that requested it. Your kitchen is safe. Return to Settings and request a fresh link after the email limit clears.');
+  }
+})();
+</script>
+</body>
+</html>
