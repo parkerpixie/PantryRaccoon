@@ -35,3 +35,10 @@
 #pancoonCloudCard .button-row{margin-top:18px}
 #pancoonArtworkArchiveStatus{font-weight:650;max-width:700px}
 @media(max-width:650px){.pancoon-cloud-login{display:grid}.pancoon-cloud-login button{width:100%}}
+
+/* Emergency recovery: visible without popups or JavaScript. */
+#pancoonRecoveryBanner{margin:0 0 14px;padding:12px 15px;border:1px solid #d2c3ad;border-radius:13px;background:#fff7e9;color:#443833;font-size:13px;line-height:1.5}
+#pancoonRecoveryBanner a{font-weight:800;text-decoration:underline}
+.pancoon-cloud-mode #pancoonRecoveryBanner{display:none}
+.pancoon-wizard-top{display:flex;justify-content:space-between;align-items:start;gap:12px}
+.pancoon-wizard-close{display:inline-flex;align-items:center;justify-content:center;width:35px;height:35px;flex:0 0 35px;border-radius:50%;background:#fff;border:1px solid var(--line);color:var(--ink);font-size:24px}
