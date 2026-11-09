@@ -10,6 +10,7 @@
   let connected=false, applying=false, pushing=false, loading=false, blocked=false, channel=null, pollTimer=null, pushTimer=null, pullTimer=null, initPromise=null;
   const mediaCache=new Map(), mediaPending=new Map();
   let lastStatus='Local images sync once imported into a household.',lastStatusBad=false;
+  let loginError='',loginBusy=false;
 
   const read=(key,def)=>{try{return JSON.parse(localStorage.getItem(key)||'null')||def;}catch{return def;}};
   const encode=(collection,id)=>JSON.stringify([collection,id]);
@@ -318,7 +319,18 @@
     const selected=localStorage.getItem(CHOSEN);
     const active=members.find(x=>x.household_id===selected);
     if(active)await connect(active.household_id,true,true);
-    else{stop();render();}
+    else if(members.length===1 && originalDataCount()===0){
+      // A brand-new phone has no local recipes to protect. Load its sole
+      // household automatically instead of making the user find another button.
+      const only=members[0].household_id;
+      stop();
+      members=data||[];
+      await connect(only,true,false);
+    }else{
+      // Keep local recipes untouched if this browser already has content.
+      stop();render();
+      if(members.length)notify('Signed in. This device has local data; select the household and choose “Use household cloud here” after backing it up.');
+    }
   }
   async function login(email){
     const c=await sdk();
@@ -335,10 +347,16 @@
   async function loginWithPassword(email,password){
     if(!email||!password)throw Error('Enter both your email and PanCoon password.');
     const c=await sdk();
-    const {error}=await c.auth.signInWithPassword({email,password});
-    if(error)throw Error('Could not sign in: '+error.message);
+    const {data,error}=await c.auth.signInWithPassword({email:email.trim(),password});
+    if(error){
+      if(error.status===400||error.code==='invalid_credentials')
+        throw Error('That email and password did not match. Your kitchen is safe. Check the email spelling and use the exact password saved on your Mac. Do not request an email link.');
+      throw Error('Could not sign in: '+error.message);
+    }
+    if(!data?.user)throw Error('No signed-in account was returned by the server.');
+    loginError='';
     await authenticated();
-    notify('Signed in with your password. Select Talbot Kitchen and use its cloud data on this device.');
+    notify('Password sign-in successful. Looking for your Talbot Kitchen…');
   }
   async function setPassword(newPassword,confirmPassword){
     if(!account)throw Error('First sign in to PanCoon on your MacBook.');
@@ -394,7 +412,8 @@
        '<form id="pancoonPasswordLogin" autocomplete="on">'+
        '<label>Email<input name="email" type="email" autocomplete="username" required placeholder="Your PanCoon email"></label>'+
        '<label>Password<input name="password" type="password" autocomplete="current-password" required placeholder="Your PanCoon password"></label>'+
-       '<button class="primary" type="submit">Sign in with password</button></form>'+
+       '<button class="primary" type="submit"'+(loginBusy?' disabled':'')+'>'+(loginBusy?'Signing in…':'Sign in with password')+'</button>'+
+       '<p id="pancoonLoginMessage" role="'+(loginError?'alert':'status')+'" aria-live="polite" style="margin:10px 0 0;'+(loginError?'color:#a33236;':'')+'">'+esc(loginError||'')+'</p></form>'+
        '<details style="margin-top:16px"><summary>Sign in by email link instead</summary>'+
        '<p class="hint">Only use this if you do not have a PanCoon password. Supabase may temporarily limit email delivery.</p>'+
        '<form id="pancoonHouseholdLogin"><label>Email<input name="email" type="email" autocomplete="email" required></label>'+
@@ -408,7 +427,7 @@
         '<label>New PanCoon password<input name="password" type="password" autocomplete="new-password" minlength="12" required placeholder="At least 12 characters"></label>'+
         '<label>Confirm password<input name="confirm" type="password" autocomplete="new-password" minlength="12" required placeholder="Repeat the new password"></label>'+
         '<button type="submit" class="secondary">Save PanCoon password</button></form>'+
-        '<p class="hint">Use a unique password stored in your password manager. Do not send it to anyone or paste it into chat.</p></div>';
+        '<p class="hint">Use a unique password stored in your password manager. Do not send it to anyone or paste it into chat. Saving a new password changes the password for this same PanCoon account.</p></div>';
       if(!members.length){
         inner+='<p>Create your household on the Mac that already holds your recipes, or join a kitchen by invitation.</p>'+
         '<div class="button-row"><input id="pancoonKitchenName" value="Talbot Kitchen" aria-label="Kitchen name" maxlength="80">'+
@@ -459,7 +478,11 @@
       e.preventDefault();
       const form=e.target, submit=form.querySelector('button[type="submit"]');
       const label=submit?.textContent;
-      if(submit){submit.disabled=true;submit.textContent='Working…';}
+      if(kind==='pancoonPasswordLogin'){
+        if(loginBusy)return;
+        loginBusy=true;loginError='';
+      }
+      if(submit){submit.disabled=true;submit.textContent='Signing in…';}
       try{
         if(kind==='pancoonHouseholdLogin')await login(form.elements.email.value.trim());
         else if(kind==='pancoonPasswordLogin')await loginWithPassword(form.elements.email.value.trim(),form.elements.password.value);
@@ -467,8 +490,18 @@
           await setPassword(form.elements.password.value,form.elements.confirm.value);
           if(form.isConnected)form.reset();
         }
-      }catch(error){notify(error.message,true);}
-      finally{if(submit?.isConnected){submit.disabled=false;submit.textContent=label;}}
+      }catch(error){
+        if(kind==='pancoonPasswordLogin'){
+          loginError=error.message||'Sign-in failed.';
+          const inline=form.querySelector('#pancoonLoginMessage');
+          if(inline){inline.textContent=loginError;inline.style.color='#a33236';inline.setAttribute('role','alert');}
+        }
+        notify(error.message,true);
+      }
+      finally{
+        if(kind==='pancoonPasswordLogin')loginBusy=false;
+        if(submit?.isConnected){submit.disabled=false;submit.textContent=label;}
+      }
     });
     document.addEventListener('click',async e=>{
       const a=e.target.closest('button[id]');if(!a)return;
