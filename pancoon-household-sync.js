@@ -332,6 +332,25 @@
     }
     notify('Sign-in email sent. Open the NEWEST link in Chrome on this Mac, the same browser where you requested it.');
   }
+  async function loginWithPassword(email,password){
+    if(!email||!password)throw Error('Enter both your email and PanCoon password.');
+    const c=await sdk();
+    const {error}=await c.auth.signInWithPassword({email,password});
+    if(error)throw Error('Could not sign in: '+error.message);
+    await authenticated();
+    notify('Signed in with your password. Select Talbot Kitchen and use its cloud data on this device.');
+  }
+  async function setPassword(newPassword,confirmPassword){
+    if(!account)throw Error('First sign in to PanCoon on your MacBook.');
+    if(newPassword.length<12)throw Error('Use at least 12 characters. A password manager can generate a strong password.');
+    if(newPassword!==confirmPassword)throw Error('Those passwords do not match. Try again.');
+    const c=await sdk();
+    const {data,error:verifyError}=await c.auth.getUser();
+    if(verifyError||data.user?.id!==account.id)throw Error('Your secure sign-in session expired. Reauthenticate on your Mac before setting a password.');
+    const {error}=await c.auth.updateUser({password:newPassword});
+    if(error)throw Error('Password was not saved: '+error.message);
+    notify('PanCoon password saved! On your iPhone, use Sign in with password with this same email.');
+  }
   async function createKitchen(){
     const name=String(document.querySelector('#pancoonKitchenName')?.value||'My Kitchen').trim();
     if(!name)return notify('Give your kitchen a name.',true);
@@ -371,12 +390,25 @@
     if(!card){card=document.createElement('article');card.id='pancoonHouseholdCard';card.className='card pancoon-settings-card';settings.prepend(card);}
     let inner='<h3>☁️ Your shared PanCoon kitchen</h3>';
     if(!account){
-      inner+='<p>Sign in to connect this device to a private household kitchen. Existing local recipes will not be moved automatically.</p>'+
-       '<form id="pancoonHouseholdLogin"><label>Email <input name="email" type="email" autocomplete="email" required></label>'+
-       '<button class="primary" type="submit">Email me a sign-in link</button></form>'+ 
-       '<p class="hint">Email links are single-use. Open the newest sign-in link on the same device and browser where you requested it. If email requests are limited, do not keep retrying.</p>';
+      inner+='<p>Sign in with your existing PanCoon account to see the shared household kitchen. Your device recipes will not be moved automatically.</p>'+
+       '<form id="pancoonPasswordLogin" autocomplete="on">'+
+       '<label>Email<input name="email" type="email" autocomplete="username" required placeholder="Your PanCoon email"></label>'+
+       '<label>Password<input name="password" type="password" autocomplete="current-password" required placeholder="Your PanCoon password"></label>'+
+       '<button class="primary" type="submit">Sign in with password</button></form>'+
+       '<details style="margin-top:16px"><summary>Sign in by email link instead</summary>'+
+       '<p class="hint">Only use this if you do not have a PanCoon password. Supabase may temporarily limit email delivery.</p>'+
+       '<form id="pancoonHouseholdLogin"><label>Email<input name="email" type="email" autocomplete="email" required></label>'+
+       '<button class="secondary" type="submit">Email me a sign-in link</button></form></details>';
     }else{
-      inner+='<p>Signed in as <strong>'+esc(account.email)+'</strong>.</p>';
+      inner+='<p>Signed in as <strong>'+esc(account.email)+'</strong>.</p>'+
+        '<div style="margin:14px 0;padding:16px;border:1px solid #e2d6d0;border-radius:12px">'+
+        '<h4 style="margin:0 0 8px">🔐 Connect your phone without email links</h4>'+
+        '<p class="hint">Set a PanCoon password here on your signed-in MacBook. Then sign in with your email and password on iPhone or Android. Your recipes stay in Talbot Kitchen.</p>'+
+        '<form id="pancoonSetPassword" autocomplete="on">'+
+        '<label>New PanCoon password<input name="password" type="password" autocomplete="new-password" minlength="12" required placeholder="At least 12 characters"></label>'+
+        '<label>Confirm password<input name="confirm" type="password" autocomplete="new-password" minlength="12" required placeholder="Repeat the new password"></label>'+
+        '<button type="submit" class="secondary">Save PanCoon password</button></form>'+
+        '<p class="hint">Use a unique password stored in your password manager. Do not send it to anyone or paste it into chat.</p></div>';
       if(!members.length){
         inner+='<p>Create your household on the Mac that already holds your recipes, or join a kitchen by invitation.</p>'+
         '<div class="button-row"><input id="pancoonKitchenName" value="Talbot Kitchen" aria-label="Kitchen name" maxlength="80">'+
@@ -422,13 +454,21 @@
     }).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['src']});
     hydrate(document.body);
     document.addEventListener('submit',async e=>{
-      if(e.target.id!=='pancoonHouseholdLogin')return;
+      const kind=e.target.id;
+      if(!['pancoonHouseholdLogin','pancoonPasswordLogin','pancoonSetPassword'].includes(kind))return;
       e.preventDefault();
-      const submit=e.target.querySelector('button[type="submit"]');
-      if(submit){submit.disabled=true;submit.textContent='Sending…';}
-      try{await login(e.target.elements.email.value.trim());}
-      catch(error){notify(error.message,true);}
-      finally{if(submit?.isConnected){submit.disabled=false;submit.textContent='Email me a sign-in link';}}
+      const form=e.target, submit=form.querySelector('button[type="submit"]');
+      const label=submit?.textContent;
+      if(submit){submit.disabled=true;submit.textContent='Working…';}
+      try{
+        if(kind==='pancoonHouseholdLogin')await login(form.elements.email.value.trim());
+        else if(kind==='pancoonPasswordLogin')await loginWithPassword(form.elements.email.value.trim(),form.elements.password.value);
+        else{
+          await setPassword(form.elements.password.value,form.elements.confirm.value);
+          if(form.isConnected)form.reset();
+        }
+      }catch(error){notify(error.message,true);}
+      finally{if(submit?.isConnected){submit.disabled=false;submit.textContent=label;}}
     });
     document.addEventListener('click',async e=>{
       const a=e.target.closest('button[id]');if(!a)return;
