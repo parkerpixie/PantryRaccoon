@@ -94,10 +94,17 @@
     const target = document.getElementById('settingsPage');
     if (!target) return;
     const config = load();
+    const cloudPaused = !window.PanCoonHouseholdConfig?.enabled;
+    const cloudCard = cloudPaused
+      ? '<article id="pancoonHouseholdCard" class="card pancoon-settings-card" aria-live="polite">' +
+        '<h3>☁️ Shared kitchen temporarily paused</h3>' +
+        '<p>PanCoon is running in recovery mode while we investigate an interface freeze. Your local recipes and cloud kitchen have not been deleted.</p>' +
+        '<p class="hint">Need to access your shared cloud account? <a href="?cloud=1#settings">Open cloud sign-in</a>. Remove ?cloud=1 from the address to return to recovery mode.</p></article>'
+      : '<article id="pancoonHouseholdCard" class="card pancoon-settings-card" aria-live="polite">' +
+        '<h3>☁️ Your shared PanCoon kitchen</h3>' +
+        '<p id="pancoonHouseholdStartup">Loading secure household sign-in…</p></article>';
     target.innerHTML =
-      '<article id="pancoonHouseholdCard" class="card pancoon-settings-card" aria-live="polite">' +
-      '<h3>☁️ Your shared PanCoon kitchen</h3>' +
-      '<p id="pancoonHouseholdStartup">Loading secure household sign-in…</p></article>' +
+      cloudCard +
       '<div class="page-heading"><div><p class="eyebrow">Your kitchen</p><h2>Make PanCoon yours</h2>' +
       '<p>Choose your week, the meals you plan, and the people who cook. Your saved kitchen stays on this device for now.</p></div></div>' +
       '<article class="card pancoon-settings-card">' +
@@ -227,7 +234,8 @@
     const dialog = document.getElementById('pancoonSetupDialog');
     if (!dialog) return;
     dialog.innerHTML =
-      '<div class="pancoon-wizard"><p class="eyebrow">Kitchen setup · Step ' + (wizardStep + 1) + ' of 3</p>' +
+      '<div class="pancoon-wizard"><div class="pancoon-wizard-top"><p class="eyebrow">Kitchen setup · Step ' + (wizardStep + 1) + ' of 3</p>' +
+      '<button type="button" class="pancoon-wizard-close" id="pancoonWizardClose" aria-label="Skip setup and close">×</button></div>' +
       '<div class="pancoon-wizard-progress"><span style="width:' + ((wizardStep + 1) / 3 * 100) + '%"></span></div>' +
       wizardContent() +
       '<div class="pancoon-wizard-actions">' +
@@ -252,7 +260,9 @@
     wizardDraft = load();
     wizardStep = 0;
     renderWizard();
-    document.getElementById('pancoonSetupDialog').showModal();
+    // Non-modal setup: users can always use the rest of the app.
+    const dialog = document.getElementById('pancoonSetupDialog');
+    if (!dialog.open) dialog.show();
   }
 
   function finishWizard(useDefault) {
@@ -297,7 +307,7 @@
         if (wizardStep === 2) finishWizard(false);
         else { wizardStep++; renderWizard(); }
       }
-      if (target.closest('#pancoonWizardSkip')) finishWizard(true);
+      if (target.closest('#pancoonWizardSkip,#pancoonWizardClose')) finishWizard(true);
     });
     document.addEventListener('change', event => {
       if (event.target.id === 'pancoonBackupFile') {
@@ -316,7 +326,13 @@
         // Storage may be full. The existing kitchen is left untouched; use Download backup.
       }
     }
-    if (FIRST_INSTALL && !localStorage.getItem(SETTINGS_KEY)) openWizard();
+    if (FIRST_INSTALL && !localStorage.getItem(SETTINGS_KEY)) {
+      const kitchen = (()=>{try{return JSON.parse(localStorage.getItem('pantry-raccoon:v1')||'{}');}catch{return {};}})();
+      const hasKitchen = Boolean((kitchen.recipes||[]).length || Object.keys(kitchen.plan||{}).length ||
+        Object.values(kitchen.inventories||{}).some(items=>Array.isArray(items)&&items.length));
+      // Never place an overlay over a populated kitchen, even if its onboarding flag is missing.
+      if (!hasKitchen) openWizard();
+    }
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once:true});
