@@ -97,17 +97,22 @@
     applying=true;
     try{
       const value=mapToKitchen(remote);
-      localStorage.setItem(STATE,JSON.stringify(value.state));
-      localStorage.setItem(SETTINGS,JSON.stringify(value.settings));
-      localStorage.setItem(ZINES,JSON.stringify(value.zines));
-      localStorage.setItem(NOTES,JSON.stringify(value.notes));
-      localStorage.setItem(META,JSON.stringify(value.meta));
+      const stateChanged=!equal(read(STATE,{}),value.state);
+      const settingsChanged=!equal(read(SETTINGS,{}),value.settings);
+      const zinesChanged=!equal(read(ZINES,{}),value.zines);
+      const notesChanged=!equal(read(NOTES,{}),value.notes);
+      const metaChanged=!equal(read(META,{}),value.meta);
+      if(stateChanged)localStorage.setItem(STATE,JSON.stringify(value.state));
+      if(settingsChanged)localStorage.setItem(SETTINGS,JSON.stringify(value.settings));
+      if(zinesChanged)localStorage.setItem(ZINES,JSON.stringify(value.zines));
+      if(notesChanged)localStorage.setItem(NOTES,JSON.stringify(value.notes));
+      if(metaChanged)localStorage.setItem(META,JSON.stringify(value.meta));
       baseline=flatLocal();
       saveBaseline();
-      window.PanCoonReloadFromStorage?.();
-      window.dispatchEvent(new Event('pancoon:cloud-refresh'));
-      window.dispatchEvent(new Event('pancoon:settings-changed'));
-      window.dispatchEvent(new Event('pancoon:zine-changed'));
+      if(stateChanged||settingsChanged||zinesChanged)window.PanCoonReloadFromStorage?.();
+      if(stateChanged||notesChanged||metaChanged)window.dispatchEvent(new Event('pancoon:cloud-refresh'));
+      if(settingsChanged)window.dispatchEvent(new Event('pancoon:settings-changed'));
+      if(zinesChanged)window.dispatchEvent(new Event('pancoon:zine-changed'));
     }finally{applying=false;}
   }
   async function fetchRemote(){
@@ -252,6 +257,7 @@
     connected=true;applying=true;
     try{localStorage.setItem(CHOSEN,hid);}finally{applying=false;}
     applyCloud();listen();render();notify('Connected. Cloud kitchen is ready.');
+    window.dispatchEvent(new Event('pancoon:cloud-connected'));
   }
   async function transferZine(recipeId,source){
     if(isShared(source))return source;
@@ -356,7 +362,7 @@
     if(!data?.user)throw Error('No signed-in account was returned by the server.');
     loginError='';
     await authenticated();
-    notify('Password sign-in successful. Looking for your Talbot Kitchen…');
+    notify('Password sign-in successful. Your shared kitchen is ready.');
   }
   async function setPassword(newPassword,confirmPassword){
     if(!account)throw Error('First sign in to PanCoon on your MacBook.');
@@ -422,7 +428,7 @@
       inner+='<p>Signed in as <strong>'+esc(account.email)+'</strong>.</p>'+
         '<div style="margin:14px 0;padding:16px;border:1px solid #e2d6d0;border-radius:12px">'+
         '<h4 style="margin:0 0 8px">🔐 Connect your phone without email links</h4>'+
-        '<p class="hint">Set a PanCoon password here on your signed-in MacBook. Then sign in with your email and password on iPhone or Android. Your recipes stay in Talbot Kitchen.</p>'+
+        '<p class="hint">Set a PanCoon password here on your signed-in MacBook. Then sign in with your email and password on iPhone or Android. Your recipes stay in your shared kitchen.</p>'+
         '<form id="pancoonSetPassword" autocomplete="on">'+
         '<label>New PanCoon password<input name="password" type="password" autocomplete="new-password" minlength="12" required placeholder="At least 12 characters"></label>'+
         '<label>Confirm password<input name="confirm" type="password" autocomplete="new-password" minlength="12" required placeholder="Repeat the new password"></label>'+
@@ -430,7 +436,7 @@
         '<p class="hint">Use a unique password stored in your password manager. Do not send it to anyone or paste it into chat. Saving a new password changes the password for this same PanCoon account.</p></div>';
       if(!members.length){
         inner+='<p>Create your household on the Mac that already holds your recipes, or join a kitchen by invitation.</p>'+
-        '<div class="button-row"><input id="pancoonKitchenName" value="Talbot Kitchen" aria-label="Kitchen name" maxlength="80">'+
+        '<div class="button-row"><input id="pancoonKitchenName" value="My Kitchen" aria-label="Kitchen name" maxlength="80">'+
         '<button type="button" class="primary" id="pancoonCreateKitchen">Create kitchen</button></div>';
       }else{
         inner+='<label>Household <select id="pancoonHouseholdSelect">'+members.map(m=>
