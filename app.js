@@ -138,24 +138,38 @@
     return `<div class="planned-meal empty-meal"><div><span class="meal-kind">${kind}</span><strong>Nothing planned yet</strong></div></div>`;
   }
 
+  let selectedPlanDay = '';
   function renderPlan(){
     const dates=weekDates(),today=dateKey(new Date());
-    const opened=new Set([...document.querySelectorAll('#mealPlan .plan-edit[open]')].map(el=>el.dataset.day));
+    const days=dates.map(dateKey);
+    if(!days.includes(selectedPlanDay))selectedPlanDay=days.includes(today)?today:days[0];
+    const opened=Boolean(document.querySelector('#mealPlan .plan-edit[open]'));
     document.getElementById('weekRange').textContent=fmt(dates[0],{month:'short',day:'numeric'})+' → '+fmt(dates[6],{month:'short',day:'numeric'});
-    document.getElementById('mealPlan').innerHTML=dates.map(date=>{
-      const day=dateKey(date),kinds=mealsForDay(date);
-      const displays=kinds.map(kind=>mealDisplay(day,kind)).join('');
-      const controls=kinds.map(kind=>{
-        const slot=state.plan[day+':'+kind]||{choice:'',cook:'Unassigned'};
-        const label=kind.charAt(0).toUpperCase()+kind.slice(1);
-        return '<label>'+esc(label)+'<select data-plan-choice="'+day+'" data-plan-kind="'+kind+'">'+choiceOptions(slot.choice,kind)+'</select></label>'+
-          '<label>'+esc(label)+' cook<select data-plan-cook="'+day+'" data-plan-kind="'+kind+'">'+cookOptions(slot.cook||'Unassigned')+'</select></label>';
-      }).join('');
-      return '<article class="meal-day '+(day===today?'today':'')+'">'+
-        '<div class="meal-date"><strong>'+fmt(date,{weekday:'long'})+'</strong><span>'+fmt(date,{month:'short',day:'numeric'})+'</span></div>'+
-        '<div class="day-meals">'+(displays||'<div class="empty-meal">No meals configured. Open Settings to choose some.</div>')+'</div>'+
-        (controls?'<details class="plan-edit" data-day="'+day+'" '+(opened.has(day)?'open':'')+'><summary>Edit plan</summary>'+controls+'</details>':'')+'</article>';
+    const date=dates[days.indexOf(selectedPlanDay)], day=selectedPlanDay, kinds=mealsForDay(date);
+    const tabs=dates.map(d=>{
+      const key=dateKey(d), active=key===day;
+      return '<button type="button" class="week-day-tab '+(active?'selected':'')+(key===today?' is-today':'')+'" data-select-plan-day="'+key+'" aria-pressed="'+active+'"><span>'+fmt(d,{weekday:'short'})+'</span><strong>'+d.getDate()+'</strong>'+(key===today?'<small>Today</small>':'<small>&nbsp;</small>')+'</button>';
     }).join('');
+    const controls=kinds.map(kind=>{
+      const slot=state.plan[day+':'+kind]||{choice:'',cook:'Unassigned'};
+      const label=kind.charAt(0).toUpperCase()+kind.slice(1);
+      return '<label>'+esc(label)+'<select data-plan-choice="'+day+'" data-plan-kind="'+kind+'">'+choiceOptions(slot.choice,kind)+'</select></label>'+
+        '<label>'+esc(label)+' cook<select data-plan-cook="'+day+'" data-plan-kind="'+kind+'">'+cookOptions(slot.cook||'Unassigned')+'</select></label>';
+    }).join('');
+    const overview=dates.map(d=>{
+      const key=dateKey(d), enabled=mealsForDay(d);
+      const items=enabled.map(kind=>{
+        const slot=state.plan[key+':'+kind]||{}, recipe=recipeForChoice(slot.choice), special=specialForChoice(slot.choice);
+        return '<span class="week-overview-meal"><small>'+esc(kind)+'</small><strong>'+esc(recipe?.name||special?.name||'Not planned')+'</strong>'+(slot.cook&&!['Unassigned','Nobody'].includes(slot.cook)?'<span class="week-overview-cook">'+esc(slot.cook)+'</span>':'')+'</span>';
+      }).join('');
+      return '<button type="button" class="week-overview-row '+(key===day?'selected':'')+'" data-select-plan-day="'+key+'" aria-pressed="'+(key===day)+'"><span class="week-overview-date"><strong>'+fmt(d,{weekday:'short'})+'</strong><small>'+fmt(d,{month:'short',day:'numeric'})+'</small></span><span class="week-overview-meals">'+(items||'<small>No meals configured</small>')+'</span><span class="week-chevron" aria-hidden="true">›</span></button>';
+    }).join('');
+    document.getElementById('mealPlan').innerHTML=
+      '<div class="week-day-strip" aria-label="Choose a day">'+tabs+'</div>'+
+      '<div class="week-layout"><article class="week-focus"><div class="week-focus-header"><div><p class="eyebrow">'+(day===today?'Today':'Selected day')+'</p><h3>'+fmt(date,{weekday:'long',month:'short',day:'numeric'})+'</h3></div></div>'+
+      '<div class="day-meals">'+(kinds.map(kind=>mealDisplay(day,kind)).join('')||'<div class="empty-meal">No meals configured. Open Settings to choose some.</div>')+'</div>'+
+      (controls?'<details class="plan-edit" data-day="'+day+'" '+(opened?'open':'')+'><summary>Edit this day</summary><div class="week-edit-fields">'+controls+'</div></details>':'')+
+      '</article><section class="week-overview"><h3>At a glance</h3><p class="hint">Tap any day to view or change its meals.</p><div class="week-overview-list">'+overview+'</div></section></div>';
   }
   function renderRecipes(){
     let zines={};
@@ -244,12 +258,13 @@
   }
   function viewRecipe(recipe){
     if(!recipe)return;
+    document.getElementById('recipeView').classList.remove('zine-primary-view');
     document.getElementById('recipeView').innerHTML=`<button type="button" class="dialog-close" data-close-view>×</button><p class="eyebrow">${esc(recipe.category||'Recipe')}</p><h2>${esc(recipe.name)}</h2><p>${recipe.createdBy?`By ${esc(recipe.createdBy)} · `:''}${recipe.servings?`Serves ${esc(recipe.servings)} · `:''}${recipe.totalMinutes||'?'} minutes</p>
       <div class="recipe-columns"><section><h3>Ingredients</h3><ul>${(recipe.ingredients||[]).map(v=>`<li>${esc(v)}</li>`).join('')}</ul></section><section><h3>Instructions</h3><ol>${(recipe.instructions||[]).map(v=>`<li>${esc(v)}</li>`).join('')}</ol></section></div>
       ${recipe.notes?`<p><strong>Notes:</strong> ${esc(recipe.notes)}</p>`:''}<div class="button-row recipe-view-actions"><button class="primary" data-print-recipe="${esc(recipe.id)}">Print</button><button class="secondary" data-email-recipe="${esc(recipe.id)}">Email</button>${recipe.url?`<a class="secondary" href="${esc(recipe.url)}" target="_blank" rel="noopener">Original recipe</a>`:''}</div>`;
-    document.getElementById('recipeViewDialog').showModal();
+    const dialog=document.getElementById('recipeViewDialog'); if(!dialog.open)dialog.showModal();
   }
-  function printRecipe(recipe){ if(!recipe)return; viewRecipe(recipe); setTimeout(()=>window.print(),80); }
+  function printRecipe(recipe){ if(!recipe)return; viewRecipe(recipe); document.body.classList.add('pancoon-print-recipe'); window.addEventListener('afterprint',()=>document.body.classList.remove('pancoon-print-recipe'),{once:true}); window.print(); document.body.classList.remove('pancoon-print-recipe'); }
   function emailRecipe(recipe){ if(!recipe)return; const body=[recipe.name,'',...(recipe.ingredients||[]).map(v=>`• ${v}`),'','Instructions',...(recipe.instructions||[]).map((v,i)=>`${i+1}. ${v}`),recipe.url?`Source: ${recipe.url}`:''].join('\n'); location.href=`mailto:?subject=${encodeURIComponent(`Recipe: ${recipe.name}`)}&body=${encodeURIComponent(body)}`; }
 
   async function importRecipe(form){
@@ -381,7 +396,7 @@
 
   function changePlan(select,type){
     const day=type==='choice'?select.dataset.planChoice:select.dataset.planCook,kind=select.dataset.planKind||'dinner',key=`${day}:${kind}`;
-    state.plan[key]||={choice:'',cook:kind==='dinner'?'Unassigned':'Nobody'};
+    state.plan[key]||={choice:'',cook:'Unassigned'};
     if(type==='choice')state.plan[key].choice=select.value;else state.plan[key].cook=select.value;
     save();renderPlan();renderGrocery();
   }
@@ -397,7 +412,9 @@
     window.addEventListener('pancoon:settings-changed',()=>{renderPlan();renderGrocery();route((location.hash||'#plan').slice(1));});
 
     document.addEventListener('click',event=>{
-      const nav=event.target.closest('[data-route]'); if(nav)return route(nav.dataset.route);
+      const dayButton=event.target.closest('[data-select-plan-day]');
+      if(dayButton){selectedPlanDay=dayButton.dataset.selectPlanDay;renderPlan();return;}
+      const nav=event.target.closest('[data-route]'); if(nav){event.preventDefault();return route(nav.dataset.route);}
       if(event.target.closest('#quickRecipeButton,#manualRecipeButton'))return openRecipeForm();
       if(event.target.closest('[data-close-dialog]'))return document.getElementById('recipeDialog').close();
       if(event.target.closest('[data-close-view]'))return document.getElementById('recipeViewDialog').close();
