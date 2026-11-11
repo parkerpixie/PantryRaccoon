@@ -18,6 +18,17 @@
   <h1>🦝 Connecting your PanCoon kitchen</h1>
   <p id="status" role="status">Checking your secure sign-in…</p>
   <p id="error" role="alert"></p>
+  <form id="pancoonPasswordRecovery" hidden style="display:none;gap:12px;margin:18px 0">
+    <label style="display:grid;gap:7px">New password
+      <input name="password" type="password" autocomplete="new-password" minlength="12" required
+        style="padding:12px;border-radius:10px;border:1px solid #ccc">
+    </label>
+    <label style="display:grid;gap:7px">Confirm new password
+      <input name="confirmation" type="password" autocomplete="new-password" minlength="12" required
+        style="padding:12px;border-radius:10px;border:1px solid #ccc">
+    </label>
+    <button type="submit" style="min-height:44px;border:0;border-radius:10px;background:#643c63;color:white;font-weight:750">Save new password</button>
+  </form>
   <p><a href="/#settings">Return to PanCoon Settings</a></p>
   <small>Your existing recipes and artwork are not changed by signing in.</small>
 </main>
@@ -35,9 +46,10 @@
   }
   const params=new URLSearchParams(location.search);
   const code=params.get('code');
+  const isRecovery=params.get('mode')==='recovery';
   const problem=params.get('error_description')||params.get('error');
   // Remove the short-lived authorization code from browser history and referrers.
-  history.replaceState(null,'',location.pathname);
+  history.replaceState(null,'',location.pathname+(isRecovery?'?mode=recovery':''));
   if(problem)return fail('The email link could not be verified. '+problem+'. Return to Settings and request a new link when emails are available.');
   if(!code)return fail('This page needs a fresh PanCoon email sign-in link. Open Settings to request one.');
   if(!window.supabase?.createClient || !window.PanCoonHouseholdConfig?.enabled)
@@ -53,8 +65,35 @@
     if(result.error)throw result.error;
     const check=await client.auth.getUser();
     if(check.error||!check.data?.user)throw Error('Your login session could not be verified.');
-    status.textContent='Sign-in confirmed! Opening your kitchen…';
-    location.replace('/#settings');
+    if(isRecovery){
+      status.textContent='Identity confirmed. Choose a new password of at least 12 characters.';
+      const form=document.getElementById('pancoonPasswordRecovery');
+      form.hidden=false;
+      form.style.display='grid';
+      form.addEventListener('submit',async event=>{
+        event.preventDefault();
+        const password=form.elements.password.value;
+        const confirmation=form.elements.confirmation.value;
+        if(password.length<12 || password!==confirmation)
+          return fail('Use at least 12 characters and make sure both passwords match.');
+        const button=form.querySelector('button');
+        button.disabled=true;button.textContent='Saving…';
+        try{
+          const result=await client.auth.updateUser({password});
+          if(result.error)throw result.error;
+          form.reset();form.hidden=true;form.style.display='none';
+          history.replaceState(null,'',location.pathname);
+          status.textContent='Your PanCoon password is updated. Return to Settings to open your shared kitchen.';
+          errorBox.style.display='none';
+        }catch(_){
+          fail('The new password could not be saved. Please try again or request a fresh recovery email.');
+          button.disabled=false;button.textContent='Save new password';
+        }
+      },{once:false});
+    }else{
+      status.textContent='Email verified! Opening your PanCoon kitchen…';
+      location.replace('/#settings');
+    }
   }catch(err){
     fail('This one-time link could not complete sign-in. It may have already been used, or it was opened in a different browser than the one that requested it. Your kitchen is safe. Return to Settings and request a fresh link after the email limit clears.');
   }

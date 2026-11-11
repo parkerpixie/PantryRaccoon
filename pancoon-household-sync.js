@@ -10,7 +10,7 @@
   let connected=false, applying=false, pushing=false, loading=false, blocked=false, channel=null, pollTimer=null, pushTimer=null, pullTimer=null, initPromise=null;
   const mediaCache=new Map(), mediaPending=new Map();
   let lastStatus='Local images sync once imported into a household.',lastStatusBad=false;
-  let loginError='',loginBusy=false;
+  let loginError='',loginBusy=false,signupError='',signupBusy=false;
 
   const read=(key,def)=>{try{return JSON.parse(localStorage.getItem(key)||'null')||def;}catch{return def;}};
   const encode=(collection,id)=>JSON.stringify([collection,id]);
@@ -348,7 +348,51 @@
       if(error.status===429)throw Error('Supabase has temporarily reached its email sending limit. Do not keep requesting links. Your recipes are safe; try again after the email limit resets.');
       throw error;
     }
-    notify('Sign-in email sent. Open the NEWEST link in Chrome on this Mac, the same browser where you requested it.');
+    notify('Sign-in email requested. Open the newest link in the same browser and on the same device where you requested it.');
+  }
+  async function registerWithPassword(email,password,confirmPassword){
+    if(cfg.selfRegistrationEnabled!==true)
+      throw Error('PanCoon account registration is paused until secure email delivery is configured.');
+    if(!email||!email.includes('@'))throw Error('Enter a valid email address.');
+    if(password.length<12)throw Error('Choose a password of at least 12 characters.');
+    if(password!==confirmPassword)throw Error('The two passwords do not match.');
+    const c=await sdk();
+    const {data,error}=await c.auth.signUp({
+      email:email.trim(),
+      password,
+      options:{emailRedirectTo:location.origin+'/pancoon-auth.html'}
+    });
+    if(error){
+      if(/email address not authorized/i.test(error.message||''))
+        throw Error('PanCoon cannot send verification emails yet. An administrator must configure a dedicated email sender.');
+      if(error.status===429)throw Error('Too many verification emails have been requested. Try again later.');
+      throw error;
+    }
+    signupError='';
+    if(data?.session){
+      await authenticated();
+      notify('Account created. Sign in and use your household invitation code to join an existing kitchen.');
+    }else{
+      notify('Check your inbox for a PanCoon verification email. Open the newest link in the same browser you used to register. After verification, sign in and use your kitchen invitation code.');
+      const info=document.getElementById('pancoonSignupMessage');
+      if(info){info.textContent='Verification requested. Check your inbox, including spam. Do not request repeated emails.';info.style.color='var(--teal,#266b5e)';}
+    }
+  }
+  async function requestPasswordReset(email){
+    if(cfg.selfRegistrationEnabled!==true)
+      throw Error('Password recovery is paused until verified email delivery is configured.');
+    if(!email||!email.includes('@'))throw Error('Enter your PanCoon email address.');
+    const c=await sdk();
+    const {error}=await c.auth.resetPasswordForEmail(email.trim(),{
+      redirectTo:location.origin+'/pancoon-auth.html?mode=recovery'
+    });
+    if(error){
+      if(/email address not authorized/i.test(error.message||''))
+        throw Error('PanCoon cannot deliver password-reset emails yet. Contact the kitchen owner.');
+      if(error.status===429)throw Error('Please wait before requesting another password-reset email.');
+      throw error;
+    }
+    notify('If this address has a PanCoon account, password-reset instructions have been requested. Check the inbox and spam folder.');
   }
   async function loginWithPassword(email,password){
     if(!email||!password)throw Error('Enter both your email and PanCoon password.');
@@ -423,7 +467,25 @@
        '<details style="margin-top:16px"><summary>Sign in by email link instead</summary>'+
        '<p class="hint">Only use this if you do not have a PanCoon password. Supabase may temporarily limit email delivery.</p>'+
        '<form id="pancoonHouseholdLogin"><label>Email<input name="email" type="email" autocomplete="email" required></label>'+
-       '<button class="secondary" type="submit">Email me a sign-in link</button></form></details>';
+       '<button class="secondary" type="submit">Email me a sign-in link</button></form></details>'+
+       '<details class="pancoon-password-reset" style="margin-top:16px"><summary>Forgot your password?</summary>'+
+       (cfg.selfRegistrationEnabled===true
+         ? '<form id="pancoonResetRequest"><label>Your PanCoon email<input type="email" name="email" autocomplete="email" required></label>'+
+           '<button class="secondary" type="submit">Send password reset link</button>'+
+           '<p class="hint" id="pancoonResetStatus" role="status" aria-live="polite"></p></form>'
+         : '<p class="hint">Email password recovery is paused until PanCoon’s secure email sender is connected. Existing signed-in devices are not affected.</p>')+
+       '</details>'+
+       '<details class="pancoon-signup-details" style="margin-top:16px"><summary>New here? Create your own PanCoon account</summary>'+
+       (cfg.selfRegistrationEnabled===true
+         ? '<p class="hint">Create your own login. After verifying your email, enter the invitation code from your household owner to share their kitchen.</p>'+
+           '<form id="pancoonCreateAccount" autocomplete="on">'+
+           '<label>Email address<input name="email" type="email" autocomplete="email" required></label>'+
+           '<label>Choose password<input name="password" type="password" autocomplete="new-password" minlength="12" required placeholder="At least 12 characters"></label>'+
+           '<label>Confirm password<input name="confirmPassword" type="password" autocomplete="new-password" minlength="12" required></label>'+
+           '<button type="submit" class="primary"'+(signupBusy?' disabled':'')+'>'+(signupBusy?'Registering…':'Create account')+'</button>'+
+           '<p id="pancoonSignupMessage" role="'+(signupError?'alert':'status')+'" aria-live="polite" class="hint" style="'+(signupError?'color:#a33236;':'')+'">'+esc(signupError||'')+'</p></form>'
+         : '<p class="hint">New-account registration is temporarily paused while PanCoon email verification is configured. Existing household accounts can still sign in above.</p>')+
+       '</details>';
     }else{
       inner+='<p>Signed in as <strong>'+esc(account.email)+'</strong>.</p>'+
         '<div style="margin:14px 0;padding:16px;border:1px solid #e2d6d0;border-radius:12px">'+
@@ -480,7 +542,7 @@
     hydrate(document.body);
     document.addEventListener('submit',async e=>{
       const kind=e.target.id;
-      if(!['pancoonHouseholdLogin','pancoonPasswordLogin','pancoonSetPassword'].includes(kind))return;
+      if(!['pancoonHouseholdLogin','pancoonPasswordLogin','pancoonSetPassword','pancoonCreateAccount','pancoonResetRequest'].includes(kind))return;
       e.preventDefault();
       const form=e.target, submit=form.querySelector('button[type="submit"]');
       const label=submit?.textContent;
@@ -488,10 +550,20 @@
         if(loginBusy)return;
         loginBusy=true;loginError='';
       }
-      if(submit){submit.disabled=true;submit.textContent='Signing in…';}
+      if(kind==='pancoonCreateAccount'){
+        if(signupBusy)return;
+        signupBusy=true;signupError='';
+      }
+      if(submit){submit.disabled=true;submit.textContent=kind==='pancoonCreateAccount'?'Creating account…':'Signing in…';}
       try{
         if(kind==='pancoonHouseholdLogin')await login(form.elements.email.value.trim());
         else if(kind==='pancoonPasswordLogin')await loginWithPassword(form.elements.email.value.trim(),form.elements.password.value);
+        else if(kind==='pancoonCreateAccount')await registerWithPassword(form.elements.email.value.trim(),form.elements.password.value,form.elements.confirmPassword.value);
+        else if(kind==='pancoonResetRequest'){
+          await requestPasswordReset(form.elements.email.value.trim());
+          const status=form.querySelector('#pancoonResetStatus');
+          if(status)status.textContent='If this account exists, check your email for the reset link.';
+        }
         else{
           await setPassword(form.elements.password.value,form.elements.confirm.value);
           if(form.isConnected)form.reset();
@@ -502,10 +574,20 @@
           const inline=form.querySelector('#pancoonLoginMessage');
           if(inline){inline.textContent=loginError;inline.style.color='#a33236';inline.setAttribute('role','alert');}
         }
+        if(kind==='pancoonCreateAccount'){
+          signupError=error.message||'Could not create your account.';
+          const inline=form.querySelector('#pancoonSignupMessage');
+          if(inline){inline.textContent=signupError;inline.style.color='#a33236';inline.setAttribute('role','alert');}
+        }
+        if(kind==='pancoonResetRequest'){
+          const status=form.querySelector('#pancoonResetStatus');
+          if(status){status.textContent=error.message||'Could not request a password reset.';status.setAttribute('role','alert');}
+        }
         notify(error.message,true);
       }
       finally{
         if(kind==='pancoonPasswordLogin')loginBusy=false;
+        if(kind==='pancoonCreateAccount')signupBusy=false;
         if(submit?.isConnected){submit.disabled=false;submit.textContent=label;}
       }
     });
