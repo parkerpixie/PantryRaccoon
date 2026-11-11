@@ -7,7 +7,11 @@
   const LIBRARY_VERSION_KEY = 'pancoon:zine-library-version';
   const LIBRARY_VERSION = '2026-08-29-recovery-1';
 
-  let openPlanDay = '';
+  // Keep escaping local to this module. The other scripts' esc() helpers
+  // live in private closures and are not available here.
+  const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[char]));
 
   function readJson(key, fallback){
     try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
@@ -56,18 +60,19 @@
   function openZineView(recipeId){
     const src = zineFor(recipeId);
     const recipe = recipeFor(recipeId);
-    if(!src || !recipe)return false;
+    if(!src)return false;
     const view=document.getElementById('recipeView'),dialog=document.getElementById('recipeViewDialog');
     if(!view||!dialog)return false;
     view.classList.add('zine-primary-view');
     view.innerHTML =
       '<button type="button" class="dialog-close" data-close-view aria-label="Close recipe">×</button>'+
-      '<div class="zine-primary-head"><p class="eyebrow">Recipe zine</p><h2>'+esc(recipe.name)+'</h2><p id="zineLoadStatus" role="status">Loading artwork…</p></div>'+
-      '<div class="zine-primary-art" hidden><img alt="'+esc(recipe.name)+' recipe zine"></div>'+
-      '<div class="zine-primary-actions"><button type="button" class="primary" data-zine-print="'+esc(recipeId)+'" disabled>Print Zine</button><button type="button" class="secondary" data-view-recipe="'+esc(recipeId)+'">View Recipe</button></div>';
+      '<div class="zine-primary-head"><p class="eyebrow">Recipe zine</p><h2>'+esc(recipe?.name||'Recipe artwork')+'</h2><p id="zineLoadStatus" role="status">Loading artwork…</p></div>'+
+      '<div class="zine-primary-art" hidden><img alt="'+esc(recipe?.name||'Recipe')+' recipe zine"></div>'+
+      '<div class="zine-primary-actions"><button type="button" class="primary" data-zine-print="'+esc(recipeId)+'" disabled>Print Zine</button>'+
+      (recipe?'<button type="button" class="secondary" data-view-recipe="'+esc(recipeId)+'">View Recipe</button>':'')+'</div>';
     if(!dialog.open)dialog.showModal();
     const image=view.querySelector('.zine-primary-art img'),panel=view.querySelector('.zine-primary-art'),status=view.querySelector('#zineLoadStatus'),print=view.querySelector('[data-zine-print]');
-    function failed(){if(status.isConnected)status.textContent='Artwork is unavailable on this device. You can still view and print the recipe below.';}
+    function failed(){if(status.isConnected)status.textContent='Artwork is unavailable on this device. You can still open the text recipe using View Recipe.';}
     artworkUrl(recipeId,src).then(url=>{
       if(!image.isConnected)return;
       image.onload=()=>{if(!image.isConnected)return;panel.hidden=false;status.textContent='Your recipe zine is ready.';print.disabled=false;};
@@ -106,10 +111,10 @@
 
     document.addEventListener('click', event => {
       const open = event.target.closest('[data-open-zine]');
-      if (open && zineFor(open.dataset.openZine)){
+      if (open){
         event.preventDefault();
         event.stopImmediatePropagation();
-        openZineView(open.dataset.openZine);
+        if(!openZineView(open.dataset.openZine))alert('No recipe zine is attached to this meal yet.');
         return;
       }
 
@@ -122,6 +127,8 @@
     }, true);
   }
 
+  // One in-app viewer for every Open Zine control, on desktop and mobile.
+  window.PanCoonZineViewer=Object.freeze({open:openZineView,print:printZine});
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once:true});
   else start();
 })();
