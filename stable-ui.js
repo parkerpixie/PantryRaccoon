@@ -466,8 +466,10 @@
   }
 
   function openZine(recipeId){
-    if (!zinePathFor(recipeId)) return;
-    window.open(`/zine.html?recipe=${encodeURIComponent(recipeId)}`, '_blank', 'noopener');
+    // Opening a separate tab is unreliable in iPhone home-screen mode.
+    // Always use the same in-app viewer as the recipe cards.
+    if(window.PanCoonZineViewer?.open(recipeId))return;
+    alert(zinePathFor(recipeId)?'The zine viewer could not open. Try reloading PanCoon.':'No recipe zine is attached to this meal yet.');
   }
 
   function uploadZineForRecipe(recipeId, button){
