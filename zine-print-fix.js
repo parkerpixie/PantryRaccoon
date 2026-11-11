@@ -101,31 +101,8 @@
     frame.srcdoc = `<!doctype html><html><head><title>${esc(title)}</title><style>@page{size:letter portrait;margin:.2in}html,body{margin:0;width:100%;height:100%;background:#fff}body{display:flex;align-items:center;justify-content:center}img{display:block;max-width:100%;max-height:10.6in;width:auto;height:auto;object-fit:contain}</style></head><body><img src="${esc(/^(blob:|data:)/.test(src) ? src : new URL(src, location.origin).href)}" alt="${esc(title)}"></body></html>`;
   }
 
-  function reopenPlanEditor(){
-    if (!openPlanDay) return;
-    const select = document.querySelector(`[data-plan-choice="${CSS.escape(openPlanDay)}"]`)
-      || document.querySelector(`[data-plan-cook="${CSS.escape(openPlanDay)}"]`);
-    const details = select?.closest('details.plan-edit');
-    if (details) details.open = true;
-  }
-
-  function keepPlanEditorOpen(event){
-    const select = event.target.closest?.('[data-plan-choice],[data-plan-cook]');
-    if (!select) return;
-    openPlanDay = select.dataset.planChoice || select.dataset.planCook || '';
-    setTimeout(reopenPlanEditor, 0);
-  }
-
-  function observePlanRenders(){
-    const plan = document.getElementById('mealPlan');
-    if (!plan) return;
-    new MutationObserver(() => reopenPlanEditor()).observe(plan,{childList:true,subtree:true});
-  }
-
   function start(){
     installStyles();
-    observePlanRenders();
-    document.addEventListener('change', keepPlanEditorOpen, false);
 
     document.addEventListener('click', event => {
       const open = event.target.closest('[data-open-zine]');
