@@ -264,7 +264,7 @@
       ${recipe.notes?`<p><strong>Notes:</strong> ${esc(recipe.notes)}</p>`:''}<div class="button-row recipe-view-actions"><button class="primary" data-print-recipe="${esc(recipe.id)}">Print</button><button class="secondary" data-email-recipe="${esc(recipe.id)}">Email</button>${recipe.url?`<a class="secondary" href="${esc(recipe.url)}" target="_blank" rel="noopener">Original recipe</a>`:''}</div>`;
     const dialog=document.getElementById('recipeViewDialog'); if(!dialog.open)dialog.showModal();
   }
-  function printRecipe(recipe){ if(!recipe)return; viewRecipe(recipe); document.body.classList.add('pancoon-print-recipe'); window.addEventListener('afterprint',()=>document.body.classList.remove('pancoon-print-recipe'),{once:true}); window.print(); document.body.classList.remove('pancoon-print-recipe'); }
+  function printRecipe(recipe){ if(!recipe)return; viewRecipe(recipe); document.body.classList.add('pancoon-print-recipe'); window.addEventListener('afterprint',()=>document.body.classList.remove('pancoon-print-recipe'),{once:true}); window.print(); setTimeout(()=>document.body.classList.remove('pancoon-print-recipe'),60000); }
   function emailRecipe(recipe){ if(!recipe)return; const body=[recipe.name,'',...(recipe.ingredients||[]).map(v=>`• ${v}`),'','Instructions',...(recipe.instructions||[]).map((v,i)=>`${i+1}. ${v}`),recipe.url?`Source: ${recipe.url}`:''].join('\n'); location.href=`mailto:?subject=${encodeURIComponent(`Recipe: ${recipe.name}`)}&body=${encodeURIComponent(body)}`; }
 
   async function importRecipe(form){
@@ -413,7 +413,7 @@
 
     document.addEventListener('click',event=>{
       const dayButton=event.target.closest('[data-select-plan-day]');
-      if(dayButton){selectedPlanDay=dayButton.dataset.selectPlanDay;renderPlan();return;}
+      if(dayButton){const fromOverview=dayButton.classList.contains('week-overview-row');if(dayButton.dataset.selectPlanDay!==selectedPlanDay){document.querySelector('#mealPlan .plan-edit[open]')?.removeAttribute('open');}selectedPlanDay=dayButton.dataset.selectPlanDay;renderPlan();if(fromOverview&&window.matchMedia('(max-width:760px)').matches)document.querySelector('.week-focus')?.scrollIntoView({behavior:'smooth',block:'start'});return;}
       const nav=event.target.closest('[data-route]'); if(nav){event.preventDefault();return route(nav.dataset.route);}
       if(event.target.closest('#quickRecipeButton,#manualRecipeButton'))return openRecipeForm();
       if(event.target.closest('[data-close-dialog]'))return document.getElementById('recipeDialog').close();
