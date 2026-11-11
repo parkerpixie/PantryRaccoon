@@ -99,14 +99,14 @@
       ? '<article id="pancoonHouseholdCard" class="card pancoon-settings-card" aria-live="polite">' +
         '<h3>☁️ Shared kitchen temporarily paused</h3>' +
         '<p>PanCoon is running in recovery mode while we investigate an interface freeze. Your local recipes and cloud kitchen have not been deleted.</p>' +
-        '<p class="hint">Need to access your shared cloud account? <a href="?cloud=1#settings">Open cloud sign-in</a>. Remove ?cloud=1 from the address to return to recovery mode.</p></article>'
+        '<p class="hint">Need to access your shared cloud account? <a href="/#settings">Return to normal PanCoon</a>.</p></article>'
       : '<article id="pancoonHouseholdCard" class="card pancoon-settings-card" aria-live="polite">' +
         '<h3>☁️ Your shared PanCoon kitchen</h3>' +
         '<p id="pancoonHouseholdStartup">Loading secure household sign-in…</p></article>';
     target.innerHTML =
       cloudCard +
       '<div class="page-heading"><div><p class="eyebrow">Your kitchen</p><h2>Make PanCoon yours</h2>' +
-      '<p>Choose your week, the meals you plan, and the people who cook. Your saved kitchen stays on this device for now.</p></div></div>' +
+      '<p>Choose your week, the meals you plan, and the people who cook. Connect your household above to share your kitchen.</p></div></div>' +
       '<article class="card pancoon-settings-card">' +
       '<form id="pancoonSettingsForm">' +
       '<div class="pancoon-setting-pair">' +
