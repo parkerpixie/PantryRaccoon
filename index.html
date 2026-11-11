@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/pancoon-onboarding.css">
   <link rel="stylesheet" href="/pancoon-home.css">
-  <script>if(new URLSearchParams(location.search).get('cloud')==='1')document.documentElement.classList.add('pancoon-cloud-mode');</script>
+  <script>if(new URLSearchParams(location.search).get('safe')!=='1')document.documentElement.classList.add('pancoon-cloud-mode');</script>
   <style>
     .tonight-card{position:relative;display:grid;grid-template-columns:minmax(0,1.55fr) minmax(210px,.72fr);padding:0;overflow:hidden;min-height:270px;background:#5b3b58;border:1px solid #4a3048;border-radius:28px;box-shadow:0 18px 50px rgba(54,42,49,.12)}
     .tonight-details{position:relative;z-index:2;align-self:stretch;display:flex;flex-direction:column;justify-content:center;margin:11px 0 11px 11px;padding:27px 34px 27px 38px;background:#fffaf3;border:1px solid #eadbd0;border-radius:25px 8px 8px 25px;box-shadow:6px 0 22px rgba(54,42,49,.08)}
