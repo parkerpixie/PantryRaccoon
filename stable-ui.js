@@ -96,21 +96,39 @@
     const art=card?.querySelector('.tonight-art');
     if(!art)return;
     const source=recipeId?zinePathFor(recipeId):'';
+    const fallback='/assets/HERO%20Raccoon%20in%20Kitchen.png';
+    const key=recipeId+':'+source;
+    if(art.dataset.zineSource===key && art.querySelector('img'))return;
+    art.dataset.zineSource=key;
+    card.classList.toggle('has-dinner-zine',Boolean(source));
     if(!source){
-      card.classList.remove('has-dinner-zine');
       art.setAttribute('aria-hidden','true');
-      if(art.dataset.zineSource || !art.querySelector('img')){
-        art.innerHTML='<img src="/assets/HERO%20Raccoon%20in%20Kitchen.png" alt="" decoding="async">';
-        delete art.dataset.zineSource;
-      }
+      art.innerHTML='<img src="'+fallback+'" alt="" decoding="async">';
       return;
     }
-    card.classList.add('has-dinner-zine');
     art.removeAttribute('aria-hidden');
-    if(art.dataset.zineSource!==source || !art.querySelector('.dinner-zine-hero-button')){
-      art.dataset.zineSource=source;
-      art.innerHTML=`<button type="button" class="dinner-zine-hero-button" data-view-recipe="${esc(recipeId)}" aria-label="Open tonight's dinner zine"><img src="${esc(source)}" alt="Tonight's dinner recipe zine"><span>Tap to view full-size zine</span></button>`;
-    }
+    art.innerHTML='<button type="button" class="dinner-zine-hero-button" data-open-zine="'+esc(recipeId)+'" aria-label="Open tonight’s recipe zine"><img src="'+fallback+'" alt="Tonight’s dinner illustration"><span>Open recipe zine</span></button>';
+    const image=art.querySelector('img');
+    const caption=art.querySelector('span');
+    const load=async()=>{
+      let url=source;
+      if(source.startsWith('pancoon-shared://')){
+        try{
+          if(!window.PanCoonSharedMedia)throw Error('Cloud not connected');
+          url=await window.PanCoonSharedMedia.resolve(source);
+        }catch(_){
+          // The original artwork may still be in this device's local image store.
+          try{url=await window.PanCoonZineStore.resolve(window.PanCoonZineStore.reference(recipeId));}
+          catch(_){throw Error('Artwork is on another device');}
+        }
+      }else if(source.startsWith('pancoon-local-zine://'))url=await window.PanCoonZineStore.resolve(source);
+      else if(source.startsWith('pancoon-private://'))url=await window.PanCoonPrivateMedia.resolve(source);
+      if(image.isConnected && art.dataset.zineSource===key){
+        image.onerror=()=>{image.onerror=null;image.src=fallback;caption.textContent='Open zine · artwork unavailable';};
+        image.src=url;
+      }
+    };
+    load().catch(()=>{if(caption.isConnected)caption.textContent='Open zine · artwork unavailable';});
   }
 
   function updateTonight(){
@@ -138,7 +156,7 @@
         ? `${slot.cook} is cooking tonight.`
         : 'Cook not assigned yet.';
       actions.innerHTML = recipe
-        ? `<button type="button" class="primary" data-view-recipe="${esc(id)}">View Recipe</button><button type="button" class="secondary" data-print-recipe="${esc(id)}">Print</button>${zinePathFor(id) ? `<button type="button" class="secondary" data-open-zine="${esc(id)}">Open Recipe Zine</button>` : ''}`
+        ? `<button type="button" class="primary" data-view-recipe="${esc(id)}">View Recipe</button><button type="button" class="secondary" data-print-recipe="${esc(id)}">Print Recipe</button>${zinePathFor(id) ? `<button type="button" class="secondary" data-open-zine="${esc(id)}">Open Recipe Zine</button>` : ''}`
         : '';
       renderDinnerArtwork(recipe ? id : '');
       return;
