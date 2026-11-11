@@ -100,16 +100,11 @@
     const key=recipeId+':'+source;
     if(art.dataset.zineSource===key && art.querySelector('img'))return;
     art.dataset.zineSource=key;
-    card.classList.toggle('has-dinner-zine',Boolean(source));
-    if(!source){
-      art.setAttribute('aria-hidden','true');
-      art.innerHTML='<img src="'+fallback+'" alt="" decoding="async">';
-      return;
-    }
-    art.removeAttribute('aria-hidden');
-    art.innerHTML='<button type="button" class="dinner-zine-hero-button" data-open-zine="'+esc(recipeId)+'" aria-label="Open tonight’s recipe zine"><img src="'+fallback+'" alt="Tonight’s dinner illustration"><span>Open recipe zine</span></button>';
-    const image=art.querySelector('img');
-    const caption=art.querySelector('span');
+    // Start with the original PanCoon artwork. Swap only after a real image loads.
+    card.classList.remove('has-dinner-zine');
+    art.setAttribute('aria-hidden','true');
+    art.innerHTML='<img src="'+fallback+'" alt="" decoding="async">';
+    if(!source)return;
     const load=async()=>{
       let url=source;
       if(source.startsWith('pancoon-shared://')){
@@ -117,18 +112,21 @@
           if(!window.PanCoonSharedMedia)throw Error('Cloud not connected');
           url=await window.PanCoonSharedMedia.resolve(source);
         }catch(_){
-          // The original artwork may still be in this device's local image store.
-          try{url=await window.PanCoonZineStore.resolve(window.PanCoonZineStore.reference(recipeId));}
-          catch(_){throw Error('Artwork is on another device');}
+          url=await window.PanCoonZineStore.resolve(window.PanCoonZineStore.reference(recipeId));
         }
       }else if(source.startsWith('pancoon-local-zine://'))url=await window.PanCoonZineStore.resolve(source);
       else if(source.startsWith('pancoon-private://'))url=await window.PanCoonPrivateMedia.resolve(source);
-      if(image.isConnected && art.dataset.zineSource===key){
-        image.onerror=()=>{image.onerror=null;image.src=fallback;caption.textContent='Open zine · artwork unavailable';};
-        image.src=url;
-      }
+      // Preload offscreen so a bad link never appears as a broken image.
+      await new Promise((resolve,reject)=>{
+        const probe=new Image();probe.onload=resolve;probe.onerror=reject;probe.src=url;
+      });
+      if(!art.isConnected || art.dataset.zineSource!==key)return;
+      art.innerHTML='<button type="button" class="dinner-zine-hero-button" data-open-zine="'+esc(recipeId)+'" aria-label="Open tonight’s recipe zine"><img alt="Tonight’s dinner recipe zine"><span>Tap to view full-size zine</span></button>';
+      art.querySelector('img').src=url;
+      card.classList.add('has-dinner-zine');
+      art.removeAttribute('aria-hidden');
     };
-    load().catch(()=>{if(caption.isConnected)caption.textContent='Open zine · artwork unavailable';});
+    load().catch(()=>{ /* Keep the original raccoon illustration without an error message. */ });
   }
 
   function updateTonight(){
@@ -581,6 +579,7 @@
 
     window.addEventListener('pancoon:zine-changed', () => { decorateRecipeCards(); updateTonight(); });
     window.addEventListener('pancoon:cloud-refresh', () => { refreshInventoryEnhancements(); updateTonight(); decorateRecipeCards(); });
+    window.addEventListener('pancoon:cloud-connected', () => { const art=document.querySelector('.tonight-art'); if(art)delete art.dataset.zineSource; updateTonight(); });
 
     window.addEventListener('storage', event => {
       if (event.key === STATE_KEY){
