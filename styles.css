@@ -17,3 +17,18 @@ dialog{border:0;background:transparent;padding:18px;width:min(850px,calc(100% - 
 @media(max-width:1150px){.shell{grid-template-columns:220px 1fr}main{padding:26px}.meal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.recipe-grid,.inventory-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{grid-template-columns:1fr 260px}.inventory-form,.freezer-form{grid-template-columns:1fr 1fr 1fr}.static-dinner-copy{left:35%;width:61%}}
 @media(max-width:760px){body{padding-top:0}.shell{display:block}.sidebar{position:sticky;top:0;z-index:50;height:auto;padding:8px 10px 9px;gap:7px;box-shadow:0 8px 24px rgba(24,20,25,.22)}.brand{gap:8px}.brand img{width:36px;height:36px}.brand strong{font-size:16px}.brand small{display:none}.sidebar nav{display:flex;overflow-x:auto;gap:5px;scrollbar-width:none}.sidebar nav::-webkit-scrollbar{display:none}.sidebar nav button{white-space:nowrap;padding:8px 11px;font-size:12px}.sidebar-note{display:none}main{padding:10px 14px 80px}.topbar{align-items:center;margin:0 0 4px;min-height:62px}.topbar .eyebrow,.topbar #pageSubtitle{display:none}.topbar h1{font-size:27px;margin:0}.topbar .primary{font-size:11px;padding:9px 11px}.quick-dashboard{position:sticky;top:91px;z-index:35;margin:0 -14px 10px;padding:8px 14px 9px;background:rgba(247,243,237,.96);backdrop-filter:blur(12px);border-bottom:1px solid rgba(221,213,203,.8)}.hero{grid-template-columns:1fr;padding:17px;margin-top:6px;min-height:0}.hero h2{font-size:24px}.hero p:last-child{margin-bottom:0}.hero img{display:none}.week-heading,.page-heading{margin-top:20px}.page-heading h2,.week-heading h2{font-size:25px}.meal-grid,.recipe-grid,.inventory-grid{grid-template-columns:1fr}.import-card form,.inventory-form,.freezer-form{grid-template-columns:1fr}.inline-form{display:grid}.page-heading{align-items:flex-start}.grocery-heading{display:grid}.form-two,.form-three,.recipe-columns{grid-template-columns:1fr}.grocery-item{grid-template-columns:auto 1fr}.grocery-source,.squirrel-button{grid-column:2;text-align:left;max-width:none}.planned-meal{align-items:flex-start}.meal-actions{flex-direction:column}.static-dinner-hero{aspect-ratio:5/8;margin-top:6px;border-radius:24px!important}.static-dinner-copy{left:8%;top:32%;width:84%;padding:5%;}.static-dinner-copy .dinner-kicker{font-size:15px}.static-dinner-copy h2{font-size:clamp(27px,8.2vw,37px)}.static-dinner-copy p:last-child{font-size:11px;margin-top:10px;line-height:1.35}.plan-kitchen-footer img{height:230px;object-fit:cover;object-position:center}.recipe-mixer-art{width:min(360px,92%)}.pantry-mushroom-art{width:min(330px,90%)}}
 @media print{.sidebar,.topbar,.quick-dashboard,.button-row,.dialog-close,.recipe-view-actions{display:none!important}body{background:white}.dialog-card{box-shadow:none;padding:0}.recipe-columns{grid-template-columns:1fr 1fr}}
+
+
+/* Week navigation keeps the dated plan visible before and after Sunday rolls over. */
+.week-navigation{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.week-navigation .secondary{font-size:13px;padding:10px 13px;white-space:nowrap}
+.week-navigation .secondary:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+.week-navigation .secondary:disabled{opacity:.5;cursor:default}
+.week-status{margin:2px 0 0;font-size:12px;font-weight:800;color:var(--teal)}
+.week-history-note{margin:-6px 2px 16px;color:var(--muted);font-size:12px}
+.grocery-week-label{color:var(--teal)!important;font-weight:800;margin:7px 0!important}
+@media(max-width:760px){
+  .week-heading{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:start}
+  .week-navigation{display:grid;grid-template-columns:1fr auto 1fr;width:100%;gap:7px}
+  .week-navigation .secondary{padding:10px 8px;font-size:12px}
+}
