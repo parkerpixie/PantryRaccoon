@@ -83,7 +83,19 @@
             <img src="/assets/HERO%20Raccoon%20in%20Kitchen.png" alt="" decoding="async">
           </div>
         </div>
-        <div class="week-heading"><div><p class="eyebrow">Meal plan</p><h2 id="weekRange">This week</h2></div><span class="pill">7-day meal plan</span></div>
+        <div class="week-heading">
+          <div>
+            <p class="eyebrow">Meal plan</p>
+            <h2 id="weekRange" aria-live="polite">This week</h2>
+            <p class="week-status" id="weekStatus">This week</p>
+          </div>
+          <nav class="week-navigation" aria-label="Browse planning weeks">
+            <button class="secondary" type="button" data-week-nav="previous" aria-label="Previous week">‹ Previous</button>
+            <button class="secondary" type="button" data-week-nav="current" id="currentWeek">This week</button>
+            <button class="secondary" type="button" data-week-nav="next" aria-label="Next week">Next ›</button>
+          </nav>
+        </div>
+        <p class="week-history-note">Plan ahead or revisit past weeks. Your saved meals stay with their dates.</p>
         <div id="mealPlan" class="meal-grid"></div>
       </section>
 
@@ -153,7 +165,7 @@
 
       <section class="page" data-page="grocery">
         <div class="page-heading grocery-heading">
-          <div><p class="eyebrow">Grocery review</p><h2>Buy it, check it off, clear the evidence</h2><p>Checked items move to Ordered / Completed. Clear them after you shop, then add forgotten things during the week.</p></div>
+          <div><p class="eyebrow">Grocery review</p><h2>Buy it, check it off, clear the evidence</h2><p id="groceryWeekRange" class="grocery-week-label">Shopping for this week.</p><p>Checked items move to Ordered / Completed. Clear them after you shop, then add forgotten things during the week.</p></div>
           <div class="button-row"><button class="primary" id="copyGrocery">Copy shopping list</button></div>
         </div>
         <article class="card"><form id="groceryExtraForm" class="inline-form"><input name="name" required placeholder="Forgot berries? Lunch meat? Dog treats?"><button class="secondary" type="submit">Add extra item</button></form><p class="hint">Manual extras can also be queued for Manage the Squirrels. The receiving MTS bridge will be connected separately.</p></article>

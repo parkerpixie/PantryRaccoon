@@ -63,7 +63,22 @@
     start.setDate(start.getDate()-((start.getDay()-planSettings().weekStart+7)%7));
     return Array.from({length:7},(_,i)=>{const d=new Date(start);d.setDate(start.getDate()+i);return d;});
   }
-  function weekKey(){return dateKey(weekDates()[0]);}
+  // The selected week is a VIEW setting only. Existing plans remain keyed by ISO date.
+  let selectedWeekAnchor = new Date();
+  function viewedWeekDates(){ return weekDates(selectedWeekAnchor); }
+  function weekKey(){ return dateKey(viewedWeekDates()[0]); }
+  function moveWeek(weeks){
+    const first=viewedWeekDates()[0];
+    first.setDate(first.getDate()+weeks*7);
+    selectedWeekAnchor=first;
+    selectedPlanDay='';
+    renderPlan();renderGrocery();
+  }
+  function showCurrentWeek(){
+    selectedWeekAnchor=new Date();
+    selectedPlanDay='';
+    renderPlan();renderGrocery();
+  }
   function mealsForDay(date){
     const config=planSettings(),custom=config.mealDays[date.getDay()];
     return Array.isArray(custom)?custom.filter(v=>MEAL_KINDS.includes(v)):config.meals;
@@ -99,7 +114,7 @@
     document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.dataset.page===name));
     document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('active',b.dataset.route===name));
     const meta={
-      plan:['This week','Your week, your meals. Change the schedule in Settings.'],
+      plan:['Meal planner','Browse past meals and plan future weeks. Nothing is cleared when a week changes.'],
       settings:['Settings','Customize your kitchen and protect your saved data.'],
       recipes:['Recipe box','Save it once. Cook it whenever.'],
       pantry:['Pantry','Baking, spices, snacks, staples, and the useful stuff.'],
@@ -140,11 +155,14 @@
 
   let selectedPlanDay = '';
   function renderPlan(){
-    const dates=weekDates(),today=dateKey(new Date());
+    const dates=viewedWeekDates(),today=dateKey(new Date());
+    const isCurrentWeek=dateKey(dates[0])===dateKey(weekDates()[0]);
     const days=dates.map(dateKey);
     if(!days.includes(selectedPlanDay))selectedPlanDay=days.includes(today)?today:days[0];
     const opened=Boolean(document.querySelector('#mealPlan .plan-edit[open]'));
-    document.getElementById('weekRange').textContent=fmt(dates[0],{month:'short',day:'numeric'})+' → '+fmt(dates[6],{month:'short',day:'numeric'});
+    document.getElementById('weekRange').textContent=fmt(dates[0],{month:'short',day:'numeric'})+' – '+fmt(dates[6],{month:'short',day:'numeric',year:'numeric'});
+    document.getElementById('weekStatus').textContent=isCurrentWeek?'This week':dates[0]<weekDates()[0]?'Past week · saved meal history':'Future week · ready to plan';
+    document.getElementById('currentWeek').disabled=isCurrentWeek;
     const date=dates[days.indexOf(selectedPlanDay)], day=selectedPlanDay, kinds=mealsForDay(date);
     const tabs=dates.map(d=>{
       const key=dateKey(d), active=key===day;
@@ -337,7 +355,7 @@
     return null;
   }
   function plannedMealEntries(){
-    const entries=[]; for(const date of weekDates()){const day=dateKey(date);for(const kind of mealsForDay(date)){const recipe=recipeForChoice(state.plan[`${day}:${kind}`]?.choice);if(recipe)entries.push({date,kind,recipe});}} return entries;
+    const entries=[]; for(const date of viewedWeekDates()){const day=dateKey(date);for(const kind of mealsForDay(date)){const recipe=recipeForChoice(state.plan[`${day}:${kind}`]?.choice);if(recipe)entries.push({date,kind,recipe});}} return entries;
   }
   function review(){state.groceryReview[weekKey()]||={};return state.groceryReview[weekKey()];}
   function dismissed(){state.groceryDismissed[weekKey()]||={};return state.groceryDismissed[weekKey()];}
@@ -358,6 +376,9 @@
   }
 
   function renderGrocery(){
+    const dates=viewedWeekDates();
+    const groceryWeek=document.getElementById('groceryWeekRange');
+    if(groceryWeek)groceryWeek.textContent='Shopping for '+fmt(dates[0],{month:'short',day:'numeric'})+' – '+fmt(dates[6],{month:'short',day:'numeric',year:'numeric'})+'. To change weeks, use the arrows in Plan.';
     const items=groceryModel(),r=review(),d=dismissed();
     const current=items.filter(i=>!d[i.key] && !r[i.key] && !['plenty','half'].includes(i.inventoryStatus));
     const completed=items.filter(i=>!d[i.key] && !!r[i.key]);
@@ -412,6 +433,13 @@
     window.addEventListener('pancoon:settings-changed',()=>{renderPlan();renderGrocery();route((location.hash||'#plan').slice(1));});
 
     document.addEventListener('click',event=>{
+      const weekButton=event.target.closest('[data-week-nav]');
+      if(weekButton){
+        event.preventDefault();
+        if(weekButton.dataset.weekNav==='current')showCurrentWeek();
+        else moveWeek(weekButton.dataset.weekNav==='previous'?-1:1);
+        return;
+      }
       const dayButton=event.target.closest('[data-select-plan-day]');
       if(dayButton){const fromOverview=dayButton.classList.contains('week-overview-row');if(dayButton.dataset.selectPlanDay!==selectedPlanDay){document.querySelector('#mealPlan .plan-edit[open]')?.removeAttribute('open');}selectedPlanDay=dayButton.dataset.selectPlanDay;renderPlan();if(fromOverview&&window.matchMedia('(max-width:760px)').matches)document.querySelector('.week-focus')?.scrollIntoView({behavior:'smooth',block:'start'});return;}
       const nav=event.target.closest('[data-route]'); if(nav){event.preventDefault();return route(nav.dataset.route);}
