@@ -12,6 +12,20 @@
   let lastStatus='Local images sync once imported into a household.',lastStatusBad=false;
   let loginError='',loginBusy=false,signupError='',signupBusy=false;
 
+  // Expose a read-only snapshot of the current signed-in household membership.
+  // Unlike an email saved in browser storage, this role comes from Supabase.
+  function accessStatus(){
+    const activeMember=account&&connected
+      ? members.find(member=>member.household_id===household)
+      : null;
+    const role=activeMember?.role||null;
+    return {signedIn:Boolean(account),connected:Boolean(connected),role,isOwner:role==='owner'};
+  }
+  function signalAccessChanged(){
+    window.dispatchEvent(new Event('pancoon:access-changed'));
+  }
+  window.PanCoonAccess=Object.freeze({status:accessStatus});
+
   const read=(key,def)=>{try{return JSON.parse(localStorage.getItem(key)||'null')||def;}catch{return def;}};
   const encode=(collection,id)=>JSON.stringify([collection,id]);
   const clone=x=>JSON.parse(JSON.stringify(x));
@@ -156,6 +170,7 @@
     for(const url of mediaCache.values())URL.revokeObjectURL(url);
     mediaCache.clear();mediaPending.clear();
     connected=false;household=null;remote.clear();baseline.clear();blocked=false;
+    signalAccessChanged();
   }
   async function put(key,val,expected){
     const [collection,recordId]=JSON.parse(key);
@@ -257,6 +272,7 @@
     connected=true;applying=true;
     try{localStorage.setItem(CHOSEN,hid);}finally{applying=false;}
     applyCloud();listen();render();notify('Connected. Cloud kitchen is ready.');
+    signalAccessChanged();
     window.dispatchEvent(new Event('pancoon:cloud-connected'));
   }
   async function transferZine(recipeId,source){
@@ -313,6 +329,7 @@
       connected=true;applying=true;
       try{localStorage.setItem(CHOSEN,household);}finally{applying=false;}
       await fetchRemote();applyCloud();listen();render();
+      signalAccessChanged();
       notify('Verified '+remote.size+' shared records. Your kitchen is connected!');
     }catch(error){notify('Import stopped after '+done+' record(s): '+error.message+' Your original data was not deleted.',true);}
     finally{loading=false;render();}
@@ -528,6 +545,7 @@
       account=data.user||null;
       if(account)await listHouseholds();else{members=[];stop();render();}
     }catch(error){render();notify('Cloud sign-in error: '+error.message,true);}
+    finally {signalAccessChanged();}
   }
   function start(){
     const original=Storage.prototype.setItem;
