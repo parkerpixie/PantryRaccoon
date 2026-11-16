@@ -8,6 +8,7 @@
   const specials={'special:out':'Go out to Eat','special:leftovers':'Leftovers',
     'special:freezer':'Freezer / Heat & Eat'};
   const ui=id=>document.getElementById(id);
+  const isOwner=()=>Boolean(window.PanCoonAccess?.status?.().isOwner);
   let accessToken='',expiresAt=0,tokenClient=null,tokenClientId='',gisPromise=null,
       busy=false,auto=false,autoTimer=null;
   const config=()=>{
@@ -68,6 +69,7 @@
     return gisPromise;
   }
   function connect(){
+    if(!isOwner())return;
     const cfg=config();
     if(!cfg.clientId||!cfg.calendarId){
       tell('Save both Google setup fields first.',true);
@@ -134,7 +136,7 @@
       extendedProperties:{private:{pancoon:'meal',mealDate:row.date,mealKind:row.kind}}};
   }
   async function publish(automatic=false){
-    if(busy)return;
+    if(!isOwner()||busy)return;
     const cfg=config();
     if(!cfg.clientId||!cfg.calendarId||!authorized()){tell('Connect Google to publish your meals.',true);return;}
     let week;
@@ -191,6 +193,7 @@
     autoTimer=setTimeout(()=>publish(true),2500);
   }
   function saveSettings(){
+    if(!isOwner())return;
     const clientId=ui('pancoonCalendarClientId').value.trim();
     const calendarId=ui('pancoonCalendarId').value.trim();
     const dinnerHour=Number(ui('pancoonCalendarDinnerHour').value.slice(0,2));
@@ -217,9 +220,19 @@
     tell('Calendar settings saved on this device. Connect Google to publish.');
   }
   function start(){
-    const planner=ui('mealPlan');
-    if(!planner||ui('pancoonCalendarCard'))return;
+    const settingsPage=ui('settingsPage');
+    if(!settingsPage)return;
+    const existing=ui('pancoonCalendarCard');
+    if(!isOwner()){
+      // Remove the controls immediately on sign-out or account changes.
+      if(existing)existing.remove();
+      accessToken='';expiresAt=0;tokenClient=null;tokenClientId='';
+      auto=false;clearTimeout(autoTimer);
+      return;
+    }
+    if(existing)return;
     const style=document.createElement('style');
+    style.id='pancoonCalendarStyles';
     style.textContent='.pancoon-calendar{margin-top:20px;padding:22px;border:1px solid var(--line,#e5dbd6);border-radius:18px;background:var(--card,#fff)}'+
       '.pancoon-calendar h3{margin:4px 0 8px;font:700 1.35rem Georgia,serif}'+
       '.pancoon-calendar p{margin:8px 0;line-height:1.5}'+
@@ -231,13 +244,13 @@
       '.pancoon-calendar .calendar-auto input{margin-top:4px}'+
       '.pancoon-calendar details{margin-top:12px}.pancoon-calendar summary{font-weight:750;cursor:pointer}'+
       '.pancoon-calendar small{color:var(--muted,#6d6569)}';
-    document.head.appendChild(style);
+    if(!ui('pancoonCalendarStyles'))document.head.appendChild(style);
     const card=document.createElement('section');
     card.id='pancoonCalendarCard';card.className='pancoon-calendar';
     card.setAttribute('aria-label','PanCoon Google Calendar publishing');
-    card.innerHTML='<p class="eyebrow">Family calendar</p>'+
-      '<h3>🗓️ Put dinner on the calendar</h3>'+
-      '<p>Publish the selected week to your shared Google Calendar. Dinner defaults to 5 PM and lunch to 11 AM. Publishing again updates the same appointments.</p>'+
+    card.innerHTML='<p class="eyebrow">Owner controls · Family calendar</p>'+
+      '<h3>🗓️ Publish meals to Google Calendar</h3>'+
+      '<p>Only the household owner sees these controls. Select a week in Meal Plan first, then publish it here. Dinner defaults to 5 PM and lunch to 11 AM. Re-publishing updates existing appointments.</p>'+
       '<p id="pancoonCalendarPreview" class="hint"></p>'+
       '<div class="calendar-actions"><button type="button" class="secondary" id="pancoonCalendarConnect">Connect Google</button>'+
       '<button type="button" class="primary" id="pancoonCalendarPublish">Publish this week</button></div>'+
@@ -259,7 +272,9 @@
       '<p><small>Google access expires and may need reconnecting. Events are 30 minutes, marked free, with no reminders.'+
       ' This connection uses America/Chicago time. Your Google token is not stored or shared with the family.</small></p>'+
       '</details>';
-    planner.insertAdjacentElement('afterend',card);
+    const householdCard=ui('pancoonHouseholdCard');
+    if(householdCard)householdCard.insertAdjacentElement('afterend',card);
+    else settingsPage.prepend(card);
     const cfg=config();
     ui('pancoonCalendarClientId').value=cfg.clientId;
     ui('pancoonCalendarId').value=cfg.calendarId;
@@ -269,21 +284,25 @@
     ui('pancoonCalendarConnect').addEventListener('click',connect);
     ui('pancoonCalendarPublish').addEventListener('click',()=>publish(false));
     ui('pancoonCalendarSave').addEventListener('click',saveSettings);
+    ui('pancoonCalendarAuto').checked=auto;
     ui('pancoonCalendarAuto').addEventListener('change',event=>{
-      auto=Boolean(event.target.checked&&authorized());
+      auto=Boolean(isOwner()&&event.target.checked&&authorized());
       tell(auto?'Auto-update enabled while this tab stays connected.':'Auto-update disabled.');
-    });
-    window.addEventListener('pancoon:week-changed',preview);
-    window.addEventListener('pancoon:cloud-refresh',preview);
-    window.addEventListener('pancoon:plan-updated',()=>{
-      preview();
-      if(auto) scheduleAutoPublish();
-      else if(authorized()) tell('Meal plan changed. Publish this week to refresh Google Calendar.');
     });
     if(cfg.clientId)loadGis().catch(error=>tell(error.message,true));
     preview();refresh();
     if(!cfg.clientId||!cfg.calendarId)tell('Configure your Google Calendar connection below to start publishing.');
   }
+  window.addEventListener('pancoon:access-changed',start);
+  window.addEventListener('pancoon:settings-rendered',start);
+  window.addEventListener('pancoon:week-changed',preview);
+  window.addEventListener('pancoon:cloud-refresh',preview);
+  window.addEventListener('pancoon:plan-updated',()=>{
+    preview();
+    if(!isOwner())return;
+    if(auto)scheduleAutoPublish();
+    else if(authorized())tell('Meal plan changed. Publish this week to refresh Google Calendar.');
+  });
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});
   else start();
 })();
