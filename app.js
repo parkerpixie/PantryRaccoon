@@ -188,6 +188,7 @@
       '<div class="day-meals">'+(kinds.map(kind=>mealDisplay(day,kind)).join('')||'<div class="empty-meal">No meals configured. Open Settings to choose some.</div>')+'</div>'+
       (controls?'<details class="plan-edit" data-day="'+day+'" '+(opened?'open':'')+'><summary>Edit this day</summary><div class="week-edit-fields">'+controls+'</div></details>':'')+
       '</article><section class="week-overview"><h3>At a glance</h3><p class="hint">Tap any day to view or change its meals.</p><div class="week-overview-list">'+overview+'</div></section></div>';
+    window.dispatchEvent(new Event('pancoon:week-changed'));
   }
   function renderRecipes(){
     let zines={};
@@ -420,16 +421,58 @@
     state.plan[key]||={choice:'',cook:'Unassigned'};
     if(type==='choice')state.plan[key].choice=select.value;else state.plan[key].cook=select.value;
     save();renderPlan();renderGrocery();
+    window.dispatchEvent(new Event('pancoon:plan-updated'));
+  }
+
+  // Read-only meal schedule for the selected planning week.
+  window.PanCoonMealCalendar = Object.freeze({
+    snapshot(){
+      let zines={};
+      try{zines=JSON.parse(localStorage.getItem('pantry-raccoon:recipe-zines:v1')||'{}')||{};}catch(_){}
+      const dates=viewedWeekDates(),rows=[];
+      for(const date of dates){
+        const day=dateKey(date),enabled=mealsForDay(date);
+        for(const kind of ['lunch','dinner']){
+          const slot=state.plan[day+':'+kind]||{};
+          const choice=enabled.includes(kind)?(slot.choice||''):'';
+          const recipe=recipeForChoice(choice),special=specialForChoice(choice);
+          rows.push({date:day,kind,choice,name:recipe?.name||special?.name||'',
+            recipeId:recipe?.id||'',cook:slot.cook||'Unassigned',hasZine:Boolean(recipe&&zines[recipe.id])});
+        }
+      }
+      return {startDate:dateKey(dates[0]),endDate:dateKey(dates[6]),rows};
+    }
+  });
+
+  let linkedRecipeOpened=false;
+  function openLinkedRecipe(){
+    if(linkedRecipeOpened)return;
+    const params=new URLSearchParams(location.search);
+    const zineId=params.get('zine'),recipeId=params.get('recipe'),target=zineId||recipeId;
+    if(!target||target.length>250)return;
+    const recipe=state.recipes.find(r=>r.id===target);
+    if(!recipe)return; // Household data may still be loading.
+    linkedRecipeOpened=true;
+    route('recipes');
+    if(zineId&&window.PanCoonZineViewer?.open(zineId))return;
+    viewRecipe(recipe);
   }
 
   // Allows verified household records to refresh the current UI without erasing the open browser session.
   window.PanCoonReloadFromStorage = function(){
+    const previousPlan=JSON.stringify(state.plan||{});
     state=load();
     renderPlan();renderRecipes();renderAllInventory();renderGrocery();
+    if(previousPlan!==JSON.stringify(state.plan||{}))
+      window.dispatchEvent(new Event('pancoon:plan-updated'));
+    openLinkedRecipe();
   };
 
   function start(){
     initializeKitchen(); inventoryFormOptions(); renderPlan();renderRecipes();renderAllInventory();renderGrocery();route((location.hash||'#plan').slice(1));
+    window.addEventListener('pancoon:cloud-connected',openLinkedRecipe);
+    window.addEventListener('pancoon:cloud-refresh',openLinkedRecipe);
+    setTimeout(openLinkedRecipe,0);
     window.addEventListener('pancoon:settings-changed',()=>{renderPlan();renderGrocery();route((location.hash||'#plan').slice(1));});
 
     document.addEventListener('click',event=>{
