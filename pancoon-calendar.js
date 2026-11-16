@@ -178,7 +178,15 @@
     }finally{busy=false;refresh();}
   }
   function scheduleAutoPublish(){
-    if(!auto||!authorized()||busy)return;
+    if(!auto)return;
+    if(!authorized()){
+      auto=false;
+      const toggle=ui('pancoonCalendarAuto');
+      if(toggle)toggle.checked=false;
+      tell('Google authorization expired. Reconnect and publish again.',true);
+      return;
+    }
+    if(busy)return;
     clearTimeout(autoTimer);
     autoTimer=setTimeout(()=>publish(true),2500);
   }
@@ -193,7 +201,9 @@
     if(!calendarId||!clientId){
       tell('Both the OAuth Client ID and editable Google Calendar ID are required.',true);return;
     }
-    if(!Number.isInteger(dinnerHour)||dinnerHour>23||dinnerHour<0||
+    if(!ui('pancoonCalendarDinnerHour').value.endsWith(':00')||
+       !ui('pancoonCalendarLunchHour').value.endsWith(':00')||
+       !Number.isInteger(dinnerHour)||dinnerHour>23||dinnerHour<0||
        !Number.isInteger(lunchHour)||lunchHour>23||lunchHour<0){
       tell('Select a valid start time.',true);return;
     }
@@ -265,7 +275,11 @@
     });
     window.addEventListener('pancoon:week-changed',preview);
     window.addEventListener('pancoon:cloud-refresh',preview);
-    window.addEventListener('pancoon:plan-updated',()=>{preview();scheduleAutoPublish();});
+    window.addEventListener('pancoon:plan-updated',()=>{
+      preview();
+      if(auto) scheduleAutoPublish();
+      else if(authorized()) tell('Meal plan changed. Publish this week to refresh Google Calendar.');
+    });
     if(cfg.clientId)loadGis().catch(error=>tell(error.message,true));
     preview();refresh();
     if(!cfg.clientId||!cfg.calendarId)tell('Configure your Google Calendar connection below to start publishing.');
